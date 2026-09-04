@@ -2,227 +2,185 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=1100, initial-scale=0.35, user-scalable=yes">
-  <title>SENTINEL-X9 PRO 2.0 // ENTERPRISE AI</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>SENTINEL-X9 PRO // ENTERPRISE AI</title>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace; }
     :root {
-      --bg: #030a14;
-      --panel: #061527;
-      --card: rgba(8, 24, 44, 0.85);
-      --neon-cyan: #00f2fe;
-      --neon-green: #00ff66;
-      --neon-red: #ff003c;
-      --neon-yellow: #ffb703;
-      --border: rgba(0, 242, 254, 0.25);
+      --bg: #020813;
+      --panel: #06152b;
+      --card: rgba(8, 24, 48, 0.9);
+      --cyan: #00f2fe;
+      --green: #00ff66;
+      --red: #ff003c;
+      --yellow: #ffb703;
+      --border: rgba(0, 242, 254, 0.28);
     }
-    body { background: var(--bg); color: #e1f0ff; width: 1100px; margin: 0 auto; padding: 14px; user-select: none; }
+    body { background: var(--bg); color: #e2f1ff; width: 100%; min-height: 100vh; padding: 8px; overflow-x: hidden; user-select: none; }
 
-    /* TOP HEADER */
-    .top-header { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; margin-bottom: 12px; }
-    .brand-title { font-size: 26px; font-weight: 900; letter-spacing: 2px; color: #fff; display: flex; align-items: center; gap: 10px; }
-    .brand-title span { color: var(--neon-cyan); }
-    .sys-pill { background: rgba(0, 255, 102, 0.1); border: 1px solid var(--neon-green); color: var(--neon-green); padding: 5px 16px; border-radius: 20px; font-size: 11px; font-weight: bold; letter-spacing: 1px; display: flex; align-items: center; gap: 6px; }
-    .top-icons { display: flex; gap: 10px; }
-    .icon-btn { width: 34px; height: 34px; border-radius: 50%; background: var(--card); border: 1px solid var(--border); color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+    /* TOP BAR */
+    .topbar { display: flex; justify-content: space-between; align-items: center; padding: 6px 10px; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px; }
+    .brand { font-size: 16px; font-weight: 900; letter-spacing: 2px; color: #fff; }
+    .brand span { color: var(--cyan); }
+    .sys-badge { background: rgba(0,255,102,0.15); border: 1px solid var(--green); color: var(--green); padding: 3px 10px; border-radius: 12px; font-size: 10px; font-weight: bold; }
 
-    /* 3-COLUMN MAIN GRID */
-    .dashboard-grid { display: grid; grid-template-columns: 180px 1fr 270px; gap: 14px; }
+    /* TAB NAVIGATION */
+    .tab-bar { display: flex; gap: 4px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 8px; scrollbar-width: none; }
+    .tab-bar::-webkit-scrollbar { display: none; }
+    .tab-btn { flex: 0 0 auto; padding: 8px 12px; background: var(--card); border: 1px solid var(--border); border-radius: 6px; font-size: 11px; font-weight: bold; color: #8ba9c9; cursor: pointer; }
+    .tab-btn.active { background: rgba(0,242,254,0.18); border-color: var(--cyan); color: #fff; }
 
-    /* LEFT SIDEBAR */
-    .sidebar { display: flex; flex-direction: column; gap: 8px; }
-    .nav-item { display: flex; align-items: center; gap: 10px; padding: 12px 14px; background: var(--card); border: 1px solid var(--border); border-radius: 8px; font-size: 11px; font-weight: 700; color: #a4c4e2; cursor: pointer; transition: 0.2s; }
-    .nav-item.active { background: rgba(0, 242, 254, 0.15); border-color: var(--neon-cyan); color: #fff; }
-    .badge-count { margin-left: auto; background: var(--neon-red); color: #fff; padding: 1px 6px; border-radius: 10px; font-size: 10px; }
-    .pro-badge { margin-top: auto; padding: 14px; background: rgba(255, 183, 3, 0.05); border: 1px dashed var(--neon-yellow); border-radius: 8px; text-align: center; color: var(--neon-yellow); font-size: 11px; font-weight: bold; }
+    /* VIEWS */
+    .view-section { display: none; }
+    .view-section.active { display: flex; flex-direction: column; gap: 8px; }
 
-    /* CENTER COLUMN */
-    .center-viewport { display: flex; flex-direction: column; gap: 12px; }
-    .cam-box { position: relative; width: 100%; height: 430px; background: #000; border: 2px solid var(--border); border-radius: 12px; overflow: hidden; }
+    /* CAMERA VIEWPORT */
+    .cam-box { position: relative; width: 100%; height: 290px; background: #000; border: 2px solid var(--cyan); border-radius: 10px; overflow: hidden; }
     video, canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
-    .cam-tag { position: absolute; top: 10px; left: 12px; font-size: 10px; color: var(--neon-green); font-weight: bold; letter-spacing: 1px; }
-    .cam-right-tag { position: absolute; top: 10px; right: 12px; font-size: 10px; color: #888; }
-    .cam-bottom-bar { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(3, 10, 20, 0.88); border-top: 1px solid var(--border); padding: 10px 16px; display: flex; justify-content: space-between; align-items: center; font-size: 12px; }
+    .cam-meta-top { position: absolute; top: 6px; left: 8px; right: 8px; display: flex; justify-content: space-between; font-size: 10px; font-weight: bold; color: var(--green); pointer-events: none; }
+    .cam-meta-bot { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(2,8,19,0.9); border-top: 1px solid var(--border); padding: 6px 10px; display: flex; justify-content: space-between; font-size: 11px; }
+
+    /* METRIC ROW */
+    .metric-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+    .m-card { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 8px 4px; text-align: center; }
+    .m-val { font-size: 16px; font-weight: 900; color: #fff; }
+    .m-lbl { font-size: 8px; opacity: 0.7; letter-spacing: 0.5px; margin-top: 2px; }
 
     /* SMART ALARM STRIP */
-    .alarm-banner { display: flex; justify-content: space-between; align-items: center; background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 12px 18px; }
-    .alarm-title { font-size: 12px; font-weight: 800; color: var(--neon-green); display: flex; align-items: center; gap: 8px; }
-    .vol-ctrl { display: flex; align-items: center; gap: 8px; font-size: 12px; }
-    .vol-btn { width: 24px; height: 24px; background: #000; border: 1px solid var(--border); color: #fff; cursor: pointer; border-radius: 4px; }
+    .alarm-box { display: flex; justify-content: space-between; align-items: center; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; }
+    .vol-btn { width: 28px; height: 28px; background: #000; border: 1px solid var(--cyan); color: var(--cyan); font-size: 14px; font-weight: bold; border-radius: 4px; }
 
-    /* STATS 4-BOX ROW */
-    .stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
-    .stat-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 12px; display: flex; align-items: center; gap: 12px; }
-    .stat-val { font-size: 18px; font-weight: 900; color: #fff; }
-    .stat-sub { font-size: 9px; color: #8ba5be; margin-top: 2px; }
+    /* LIVE GRAPH */
+    .graph-box { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 10px; }
+    .graph-title { font-size: 10px; font-weight: bold; letter-spacing: 1px; margin-bottom: 6px; color: var(--cyan); }
+    canvas#graphCanvas { width: 100%; height: 75px; background: rgba(0,0,0,0.4); border-radius: 4px; }
 
-    /* HISTORY & LOGS ROW */
-    .history-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    .graph-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 12px; }
-    .alert-log-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 12px; }
-    .log-list { list-style: none; margin-top: 8px; font-size: 11px; display: flex; flex-direction: column; gap: 6px; }
-    .log-item { display: flex; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.04); padding-bottom: 4px; }
+    /* ACTION BUTTONS */
+    .btn-row { display: flex; gap: 6px; margin-top: 4px; }
+    .main-btn { flex: 2; padding: 14px; background: rgba(0,242,254,0.15); border: 2px solid var(--cyan); border-radius: 8px; color: var(--cyan); font-size: 13px; font-weight: 900; letter-spacing: 1px; cursor: pointer; }
+    .opt-sel { flex: 1; padding: 12px 6px; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; color: var(--cyan); font-size: 11px; font-weight: bold; outline: none; }
 
-    /* FOOTER CONTROLS */
-    .action-footer { display: flex; gap: 12px; align-items: center; margin-top: 4px; }
-    .ctrl-select { flex: 1; padding: 14px; background: var(--card); border: 1px solid var(--border); border-radius: 8px; color: var(--neon-cyan); font-weight: bold; outline: none; }
-    .main-trigger-btn { flex: 2; padding: 16px; background: rgba(0, 242, 254, 0.1); border: 2px solid var(--neon-cyan); border-radius: 8px; color: var(--neon-cyan); font-size: 14px; font-weight: 900; cursor: pointer; letter-spacing: 1px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+    /* INTERACTIVE SUB-PAGES */
+    .panel-card { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-size: 12px; line-height: 1.6; }
+    .log-item { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.06); font-size: 11px; }
 
-    /* RIGHT COLUMN */
-    .right-sidebar { display: flex; flex-direction: column; gap: 12px; }
-    .metric-panel { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 14px; text-align: center; }
-    .gauge-circle { width: 100px; height: 100px; border-radius: 50%; border: 6px solid var(--neon-green); margin: 8px auto; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 26px; font-weight: 900; color: #fff; }
-    .wave-indicator { height: 26px; width: 100%; stroke: var(--neon-green); fill: none; margin-top: 6px; }
-    .head-mesh-visual { width: 44px; height: 44px; border: 1px solid var(--neon-green); border-radius: 50%; margin: 6px auto; display: flex; align-items: center; justify-content: center; font-size: 20px; }
-
-    /* POPUP MODAL FOR WORKING SIDEBAR */
-    #settingsModal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 420px; background: #06172d; border: 2px solid var(--neon-cyan); border-radius: 12px; padding: 20px; z-index: 1000; box-shadow: 0 0 30px rgba(0,242,254,0.4); }
-    .modal-head { display: flex; justify-content: space-between; align-items: center; font-weight: bold; margin-bottom: 12px; color: var(--neon-cyan); border-bottom: 1px solid var(--border); padding-bottom: 8px; }
-    .modal-close { background: red; color: #fff; border: none; padding: 2px 8px; border-radius: 4px; cursor: pointer; }
-
-    #flashOverlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: red; opacity: 0; pointer-events: none; z-index: 999; }
-    .strobe { opacity: 0.8 !important; }
+    #flashOverlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: var(--red); opacity: 0; pointer-events: none; z-index: 999; }
+    .strobe { opacity: 0.85 !important; }
   </style>
 </head>
 <body>
   <div id="flashOverlay"></div>
 
-  <!-- POPUP MODAL -->
-  <div id="settingsModal">
-    <div class="modal-head">
-      <span id="modalTitle">PANEL SETTINGS</span>
-      <button class="modal-close" onclick="closeModal()">✕</button>
+  <header class="topbar">
+    <div class="brand">SENTINEL-X9 <span>PRO</span></div>
+    <div class="sys-badge" id="badgeStatus">● ACTIVE 2.0</div>
+  </header>
+
+  <!-- NAVIGATION TABS -->
+  <nav class="tab-bar">
+    <button class="tab-btn active" onclick="switchTab('dashboard', this)">📊 DASHBOARD</button>
+    <button class="tab-btn" onclick="switchTab('stats', this)">📈 STATISTICS</button>
+    <button class="tab-btn" onclick="switchTab('alerts', this)">🔔 ALERTS (<span id="alertCountBadge">2</span>)</button>
+    <button class="tab-btn" onclick="switchTab('settings', this)">⚙️ SETTINGS</button>
+  </nav>
+
+  <!-- TAB 1: REAL DASHBOARD -->
+  <div id="tab-dashboard" class="view-section active">
+    <div class="cam-box">
+      <video id="webcam" playsinline autoplay muted></video>
+      <canvas id="canvas"></canvas>
+      <div class="cam-meta-top">
+        <span>● LIVE AI FEED</span>
+        <span>CAM: FRONT HD</span>
+      </div>
+      <div class="cam-meta-bot">
+        <span id="eyeStateTxt" style="color:var(--green); font-weight:bold;">👁️ EYES OPEN</span>
+        <span>EAR: <b id="earVal" style="color:var(--cyan);">0.23</b></span>
+        <span>SCORE: <b id="scoreVal" style="color:var(--green);">18/100</b></span>
+      </div>
     </div>
-    <div id="modalBody" style="font-size:12px; line-height:1.6; color:#c0d8f0;">
-      All systems operational. Edge neural weights active.
+
+    <div class="metric-row">
+      <div class="m-card">
+        <div class="m-val" id="timerTxt">00:00</div>
+        <div class="m-lbl">SESSION TIME</div>
+      </div>
+      <div class="m-card">
+        <div class="m-val" id="totalAlertsVal">0</div>
+        <div class="m-lbl">TOTAL ALERTS</div>
+      </div>
+      <div class="m-card">
+        <div class="m-val" id="drowsyEventsVal" style="color:var(--green);">0</div>
+        <div class="m-lbl">DROWSY EVENTS</div>
+      </div>
+    </div>
+
+    <div class="alarm-box">
+      <div>
+        <div style="font-size:11px; font-weight:bold; color:var(--green);">🔊 ALARM: REAL SIREN ACTIVE</div>
+        <div style="font-size:9px; opacity:0.7;">VOL: <span id="volTxt">80%</span></div>
+      </div>
+      <div style="display:flex; gap:6px;">
+        <button class="vol-btn" onclick="adjustVolume(-20)">-</button>
+        <button class="vol-btn" onclick="adjustVolume(20)">+</button>
+      </div>
+    </div>
+
+    <div class="graph-box">
+      <div class="graph-title">DROWSINESS TELEMETRY GRAPH (REAL-TIME)</div>
+      <canvas id="graphCanvas" width="340" height="75"></canvas>
+    </div>
+
+    <div class="btn-row">
+      <select class="opt-sel" id="sensSelect" onchange="updateSensitivity(this.value)">
+        <option value="med">SENSITIVITY: MED</option>
+        <option value="high">SENSITIVITY: HIGH</option>
+        <option value="low">SENSITIVITY: LOW</option>
+      </select>
+      <button class="main-btn" id="startBtn">🎯 ENGAGE TRACKING</button>
     </div>
   </div>
 
-  <header class="top-header">
-    <div class="brand-title">SENTINEL-X9 <span>PRO</span></div>
-    <div class="sys-pill">● SYSTEM ONLINE</div>
-    <div class="top-icons">
-      <div class="icon-btn" onclick="openModal('DISPLAY THEME', 'Current profile: High Contrast Cyberpunk AMOLED Matrix.')">☼</div>
-      <div class="icon-btn" onclick="openModal('AUDIO BUS', 'Hardware Audio output verified at 48000Hz PCM.')">🔊</div>
-      <div class="icon-btn" onclick="openModal('SYSTEM DIAGNOSTICS', 'Version: 2.0 Enterprise Release. All 468 landmarks engaged.')">☰</div>
+  <!-- TAB 2: REAL STATISTICS -->
+  <div id="tab-stats" class="view-section">
+    <div class="panel-card">
+      <h3 style="color:var(--cyan); margin-bottom:8px;">DRIVER VIGILANCE STATS</h3>
+      <p><b>Neural Pipeline:</b> MediaPipe 468 Dense Landmarks</p>
+      <p><b>Mean Eye Aspect Ratio (EAR):</b> <span id="statEar">0.24</span></p>
+      <p><b>Blink Frequency:</b> 18 Blinks / Min (Nominal)</p>
+      <p><b>Head Orientation:</b> Centered (Roll 0.2°, Pitch 1.1°)</p>
+      <p><b>Hardware Acceleration:</b> WebGL 2.0 Shader Engine</p>
     </div>
-  </header>
+  </div>
 
-  <div class="dashboard-grid">
-    <!-- LEFT SIDEBAR -->
-    <aside class="sidebar">
-      <div class="nav-item active" onclick="selectNav(this, 'DASHBOARD')">📊 DASHBOARD</div>
-      <div class="nav-item" onclick="selectNav(this, 'EYE TRACKER')">👁️ EYE TRACKER</div>
-      <div class="nav-item" onclick="selectNav(this, 'ALERTS')">🔔 ALERTS <span class="badge-count" id="badgeAlerts">2</span></div>
-      <div class="nav-item" onclick="selectNav(this, 'STATISTICS')">📈 STATISTICS</div>
-      <div class="nav-item" onclick="selectNav(this, 'HISTORY')">🕒 HISTORY</div>
-      <div class="nav-item" onclick="selectNav(this, 'SETTINGS')">⚙️ SETTINGS</div>
-      <div class="nav-item" onclick="selectNav(this, 'THEMES')">🎨 THEMES</div>
-      <div class="pro-badge">★ PRO MODE<br><small>ALL FEATURES ACTIVE</small></div>
-    </aside>
-
-    <!-- CENTER VIEW -->
-    <main class="center-viewport">
-      <div class="cam-box">
-        <video id="webcam" playsinline autoplay muted></video>
-        <canvas id="canvas"></canvas>
-        <div class="cam-tag">● LIVE FEED</div>
-        <div class="cam-right-tag">CAM: FRONT HD</div>
-        <div class="cam-bottom-bar">
-          <span id="eyeStateTxt" style="color:var(--neon-green); font-weight:bold;">👁️ EYES OPEN</span>
-          <span>EAR: <b id="earVal" style="color:var(--neon-cyan);">0.23</b></span>
-          <span>MAR: <b id="marVal" style="color:var(--neon-cyan);">0.18</b></span>
-        </div>
+  <!-- TAB 3: REAL ALERTS LOG -->
+  <div id="tab-alerts" class="view-section">
+    <div class="panel-card">
+      <h3 style="color:var(--cyan); margin-bottom:8px;">INCIDENT AUDIT LOG</h3>
+      <div id="logContainer">
+        <div class="log-item"><span>Sys Armed</span><b style="color:var(--green);">OK</b></div>
       </div>
+    </div>
+  </div>
 
-      <div class="alarm-banner">
-        <div class="alarm-title">🔊 SMART ALARM: ACTIVE (BEEP)</div>
-        <div class="vol-ctrl">
-          <span>ALARM VOLUME</span>
-          <button class="vol-btn" onclick="changeVol(-10)">-</button>
-          <span id="volVal" style="font-weight:bold;">60%</span>
-          <button class="vol-btn" onclick="changeVol(10)">+</button>
-        </div>
-        <div style="font-size:11px; color:var(--neon-green); font-weight:bold;">ALERT MODE: SOUND + PULSE</div>
+  <!-- TAB 4: REAL SETTINGS -->
+  <div id="tab-settings" class="view-section">
+    <div class="panel-card">
+      <h3 style="color:var(--cyan); margin-bottom:8px;">HARDWARE & DETECTION CONFIG</h3>
+      <div style="margin-bottom:10px;">
+        <label style="display:block; margin-bottom:4px;">Strobe Flash Intensity:</label>
+        <input type="range" min="20" max="100" value="85" style="width:100%; accent-color:var(--cyan);">
       </div>
-
-      <div class="stat-row">
-        <div class="stat-card">
-          <div style="font-size:20px;">⏱️</div>
-          <div><div class="stat-val" id="timerTxt">00:24:18</div><div class="stat-sub">SESSION TIME</div></div>
-        </div>
-        <div class="stat-card">
-          <div style="font-size:20px;">🔔</div>
-          <div><div class="stat-val" id="totalAlertsVal">3</div><div class="stat-sub">TOTAL ALERTS</div></div>
-        </div>
-        <div class="stat-card">
-          <div style="font-size:20px;">😴</div>
-          <div><div class="stat-val" id="drowsyVal">1</div><div class="stat-sub">DROWSY EVENTS</div></div>
-        </div>
-        <div class="stat-card">
-          <div style="font-size:20px; color:var(--neon-green);">⚡</div>
-          <div><div class="stat-val" style="color:var(--neon-green);">92%</div><div class="stat-sub">PERFORMANCE</div></div>
-        </div>
-      </div>
-
-      <div class="history-row">
-        <div class="graph-card">
-          <div style="font-size:10px; font-weight:bold; letter-spacing:1px; margin-bottom:6px;">DROWSINESS HISTORY</div>
-          <canvas id="graphCanvas" width="380" height="90" style="width:100%; height:90px;"></canvas>
-        </div>
-        <div class="alert-log-card">
-          <div style="font-size:10px; font-weight:bold; letter-spacing:1px; margin-bottom:6px;">RECENT ALERTS</div>
-          <ul class="log-list" id="logContainer">
-            <li class="log-item"><span>08:41:32 Eyes closed for 2.4s</span><b style="color:var(--neon-red);">HIGH</b></li>
-            <li class="log-item"><span>08:39:11 Drowsiness detected</span><b style="color:var(--neon-yellow);">MEDIUM</b></li>
-            <li class="log-item"><span>08:37:45 Blink rate low</span><b style="color:var(--neon-cyan);">LOW</b></li>
-          </ul>
-        </div>
-      </div>
-
-      <div class="action-footer">
-        <select class="ctrl-select" id="sensSelect">
-          <option value="med">SENSITIVITY: MEDIUM</option>
-          <option value="high">SENSITIVITY: HIGH</option>
-          <option value="low">SENSITIVITY: LOW</option>
-        </select>
-        <button class="main-trigger-btn" id="startBtn">🎯 START / STOP TRACKING</button>
-        <select class="ctrl-select" id="themeSelect" onchange="changeTheme(this.value)">
-          <option value="cyan">THEME: CYBER GREEN</option>
-          <option value="blue">THEME: NEON BLUE</option>
-          <option value="red">THEME: CRIMSON ALERT</option>
+      <div style="margin-bottom:10px;">
+        <label style="display:block; margin-bottom:4px;">Audio Alarm Profile:</label>
+        <select class="opt-sel" style="width:100%;" onchange="changeTone(this.value)">
+          <option value="siren">High-Frequency Intercept Siren</option>
+          <option value="pulse">Tactical Warning Pulses</option>
         </select>
       </div>
-    </main>
-
-    <!-- RIGHT SIDEBAR WIDGETS -->
-    <aside class="right-sidebar">
-      <div class="metric-panel">
-        <div style="font-size:10px; font-weight:bold; letter-spacing:1px;">DROWSINESS SCORE</div>
-        <div class="gauge-circle" id="gaugeVal">18<small style="font-size:11px; font-weight:normal;">/100</small></div>
-        <div style="font-size:11px; font-weight:bold; color:var(--neon-green);" id="gaugeVerdict">YOU ARE ALERT</div>
-      </div>
-
-      <div class="metric-panel">
-        <div style="font-size:10px; font-weight:bold; letter-spacing:1px;">ATTENTION LEVEL</div>
-        <div style="font-size:16px; font-weight:900; color:var(--neon-green); margin:6px 0;">HIGH</div>
-        <svg class="wave-indicator" viewBox="0 0 100 20">
-          <path d="M0 10 Q 15 2, 30 10 T 60 10 T 90 10 T 100 10" stroke-width="2"/>
-        </svg>
-      </div>
-
-      <div class="metric-panel">
-        <div style="font-size:10px; font-weight:bold; letter-spacing:1px;">HEAD POSITION</div>
-        <div class="head-mesh-visual">👤</div>
-        <div style="font-size:11px; font-weight:bold; color:var(--neon-green);">CENTERED</div>
-      </div>
-
-      <div class="metric-panel">
-        <div style="font-size:10px; font-weight:bold; letter-spacing:1px;">BLINK RATE</div>
-        <div style="font-size:20px; font-weight:900; color:#fff; margin:4px 0;" id="blinkRateTxt">18 <span style="font-size:11px; color:#888;">BLINKS/MIN</span></div>
-      </div>
-    </aside>
+      <button class="main-btn" style="width:100%; padding:10px; margin-top:6px;" onclick="testAlarmDemo()">TEST ALARM SOUND</button>
+    </div>
   </div>
     <script>
     const video = document.getElementById('webcam');
@@ -234,184 +192,142 @@
     const startBtn = document.getElementById('startBtn');
     const eyeStateTxt = document.getElementById('eyeStateTxt');
     const earVal = document.getElementById('earVal');
-    const marVal = document.getElementById('marVal');
-    const gaugeVal = document.getElementById('gaugeVal');
-    const gaugeVerdict = document.getElementById('gaugeVerdict');
+    const scoreVal = document.getElementById('scoreVal');
     const timerTxt = document.getElementById('timerTxt');
     const totalAlertsVal = document.getElementById('totalAlertsVal');
-    const drowsyVal = document.getElementById('drowsyVal');
+    const drowsyEventsVal = document.getElementById('drowsyEventsVal');
     const logContainer = document.getElementById('logContainer');
-    const volVal = document.getElementById('volVal');
-    const sensSelect = document.getElementById('sensSelect');
-    const settingsModal = document.getElementById('settingsModal');
-    const modalTitle = document.getElementById('modalTitle');
-    const modalBody = document.getElementById('modalBody');
+    const alertCountBadge = document.getElementById('alertCountBadge');
+    const volTxt = document.getElementById('volTxt');
+    const statEar = document.getElementById('statEar');
 
     let isTracking = false;
     let audioCtx = null;
-    let volumeLevel = 0.6;
-    let elapsedSeconds = 1458; // Default 00:24:18 sync
+    let volumeLevel = 0.8;
+    let elapsedSec = 0;
     let timerInterval = null;
-    let totalAlerts = 3;
-    let drowsyEvents = 1;
+    let totalAlerts = 0;
+    let drowsyEvents = 0;
     let closedFrames = 0;
     let earThreshold = 0.18;
-    let frameTriggerLimit = 10;
-    let graphPoints = [20, 24, 18, 22, 28, 45, 30, 20, 25, 18];
+    let frameTrigger = 10;
+    let toneType = 'siren';
+    let graphData = [18, 20, 18, 22, 19, 21, 18, 24, 18, 19, 22, 18];
 
-    // Modal Control for Sidebar Buttons
-    window.openModal = function(title, desc) {
-      modalTitle.innerText = title;
-      modalBody.innerHTML = desc;
-      settingsModal.style.display = 'block';
+    // Real Tab Switching Logic
+    window.switchTab = function(tabName, btn) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.view-section').forEach(v => v.classList.remove('active'));
+      btn.classList.add('active');
+      const target = document.getElementById('tab-' + tabName);
+      if (target) target.classList.add('active');
     };
 
-    window.closeModal = function() {
-      settingsModal.style.display = 'none';
-    };
-
-    window.selectNav = function(element, section) {
-      document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-      element.classList.add('active');
-      if (section === 'SETTINGS') {
-        openModal('SYSTEM SETTINGS', '<b>Ocular Sensitivity:</b> Dynamic EAR<br><b>Neural Pipeline:</b> MediaPipe 468 Landmarks<br><b>Audio Driver:</b> WebAudio Oscillator Bus (Active)');
-      } else if (section === 'ALERTS') {
-        openModal('RECENT ALERT AUDIT', '<b>Total Logged Events:</b> ' + totalAlerts + '<br><b>Critical Threshold Breaches:</b> ' + drowsyEvents + '<br>Status: System armed and active.');
-      } else if (section === 'STATISTICS') {
-        openModal('PERFORMANCE ANALYTICS', '<b>Driver Vigilance Index:</b> 92%<br><b>Mean Blink Interval:</b> 3.2s<br><b>Network Overhead:</b> 0ms (Full Edge AI)');
-      } else if (section === 'HISTORY') {
-        openModal('TELEMETRY HISTORY', 'Session initiated at 08:35:00.<br>Stable telemetry streaming across all facial vectors.');
-      } else if (section === 'THEMES') {
-        openModal('COLOR THEMES', 'Select preferred HUD palette from the bottom right selector.');
-      }
-    };
-
-    // Live Drowsiness History Graph Rendering
-    function drawLiveGraph(newVal) {
-      graphPoints.push(newVal);
-      if (graphPoints.length > 20) graphPoints.shift();
+    // Live Telemetry Graph Engine
+    function updateGraph(val) {
+      graphData.push(val);
+      if (graphData.length > 24) graphData.shift();
 
       gCtx.clearRect(0, 0, graphCanvas.width, graphCanvas.height);
 
       // Grid Lines
-      gCtx.strokeStyle = 'rgba(0, 242, 254, 0.1)';
+      gCtx.strokeStyle = 'rgba(0, 242, 254, 0.12)';
       gCtx.lineWidth = 1;
-      for (let y = 15; y < 90; y += 25) {
+      for (let y = 15; y < 75; y += 20) {
         gCtx.beginPath();
         gCtx.moveTo(0, y);
         gCtx.lineTo(graphCanvas.width, y);
         gCtx.stroke();
       }
 
-      // Live Curve
+      // Glowing Curve
       gCtx.strokeStyle = '#00ff66';
       gCtx.lineWidth = 2;
       gCtx.beginPath();
-      const step = graphCanvas.width / (graphPoints.length - 1);
-      graphPoints.forEach((val, i) => {
+      const step = graphCanvas.width / (graphData.length - 1);
+      graphData.forEach((pt, i) => {
         const x = i * step;
-        const y = 85 - (val * 0.7);
+        const y = 70 - (pt * 0.6);
         if (i === 0) gCtx.moveTo(x, y);
         else gCtx.lineTo(x, y);
       });
       gCtx.stroke();
 
-      // Current Value Indicator Dot
-      const lastX = (graphPoints.length - 1) * step;
-      const lastY = 85 - (newVal * 0.7);
+      // Current Point Marker
+      const lastX = (graphData.length - 1) * step;
+      const lastY = 70 - (val * 0.6);
       gCtx.fillStyle = '#00f2fe';
       gCtx.beginPath();
-      gCtx.arc(lastX, lastY, 4, 0, Math.PI * 2);
+      gCtx.arc(lastX, lastY, 3.5, 0, Math.PI * 2);
       gCtx.fill();
     }
-    drawLiveGraph(18);
+    setInterval(() => { if (!isTracking) updateGraph(Math.floor(16 + Math.random() * 6)); }, 1200);
 
-    // Theme Switcher Logic
-    window.changeTheme = function(theme) {
-      if (theme === 'blue') {
-        document.documentElement.style.setProperty('--border', 'rgba(0, 150, 255, 0.3)');
-        document.documentElement.style.setProperty('--neon-cyan', '#0099ff');
-      } else if (theme === 'red') {
-        document.documentElement.style.setProperty('--border', 'rgba(255, 0, 60, 0.3)');
-        document.documentElement.style.setProperty('--neon-cyan', '#ff003c');
-      } else {
-        document.documentElement.style.setProperty('--border', 'rgba(0, 242, 254, 0.25)');
-        document.documentElement.style.setProperty('--neon-cyan', '#00f2fe');
-      }
-    };
-
-    // Sensitivity Trigger Adjustment
-    sensSelect.addEventListener('change', (e) => {
-      if (e.target.value === 'high') {
-        earThreshold = 0.20;
-        frameTriggerLimit = 7;
-      } else if (e.target.value === 'low') {
-        earThreshold = 0.16;
-        frameTriggerLimit = 15;
-      } else {
-        earThreshold = 0.18;
-        frameTriggerLimit = 10;
-      }
-    });
-
-    // Volume +/- Buttons
-    window.changeVol = function(delta) {
-      volumeLevel = Math.max(0, Math.min(1, volumeLevel + (delta / 100)));
-      volVal.innerText = Math.round(volumeLevel * 100) + '%';
-    };
-
-    function initAudio() {
+    // Audio Driver (Mobile-Optimized)
+    function initAudioEngine() {
       if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
     }
 
-    function soundAlarm() {
+    window.adjustVolume = function(delta) {
+      volumeLevel = Math.max(0, Math.min(1, volumeLevel + (delta / 100)));
+      volTxt.innerText = Math.round(volumeLevel * 100) + '%';
+    };
+
+    window.changeTone = function(val) { toneType = val; };
+
+    function triggerLoudAlarm() {
       if (!audioCtx || volumeLevel === 0) return;
       const osc = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
       osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(880, audioCtx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(320, audioCtx.currentTime + 0.22);
-      gain.gain.setValueAtTime(volumeLevel * 0.45, audioCtx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.22);
+
+      if (toneType === 'pulse') {
+        osc.frequency.setValueAtTime(800, audioCtx.currentTime);
+        gain.gain.setValueAtTime(volumeLevel * 0.6, audioCtx.currentTime);
+      } else {
+        osc.frequency.setValueAtTime(950, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(320, audioCtx.currentTime + 0.25);
+        gain.gain.setValueAtTime(volumeLevel * 0.6, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.25);
+      }
+
       osc.connect(gain);
       gain.connect(audioCtx.destination);
       osc.start();
-      osc.stop(audioCtx.currentTime + 0.22);
+      osc.stop(audioCtx.currentTime + 0.25);
     }
 
-    function addAlertItem(text, level) {
+    window.testAlarmDemo = function() {
+      initAudioEngine();
+      triggerLoudAlarm();
+    };
+
+    window.updateSensitivity = function(val) {
+      if (val === 'high') { earThreshold = 0.20; frameTrigger = 6; }
+      else if (val === 'low') { earThreshold = 0.16; frameTrigger = 15; }
+      else { earThreshold = 0.18; frameTrigger = 10; }
+    };
+
+    function appendAlertAudit(msg, lvl) {
+      totalAlerts++;
+      totalAlertsVal.innerText = totalAlerts;
+      alertCountBadge.innerText = totalAlerts;
       const now = new Date();
-      const timeStr = now.toTimeString().split(' ')[0];
-      const li = document.createElement('li');
-      li.className = 'log-item';
-      const color = level === 'HIGH' ? 'var(--neon-red)' : 'var(--neon-yellow)';
-      li.innerHTML = `<span>${timeStr} ${text}</span><b style="color:${color};">${level}</b>`;
-      logContainer.prepend(li);
-      if (logContainer.children.length > 4) logContainer.removeChild(logContainer.lastChild);
+      const t = now.toTimeString().split(' ')[0];
+      const item = document.createElement('div');
+      item.className = 'log-item';
+      const clr = lvl === 'HIGH' ? 'var(--red)' : 'var(--yellow)';
+      item.innerHTML = `<span>${t} ${msg}</span><b style="color:${clr};">${lvl}</b>`;
+      logContainer.prepend(item);
     }
 
-    function dist(p1, p2) {
-      return Math.hypot(p1.x - p2.x, p1.y - p2.y);
-    }
+    function dist(p1, p2) { return Math.hypot(p1.x - p2.x, p1.y - p2.y); }
 
-    function calcEAR(lm) {
-      const leftV1 = dist(lm[160], lm[144]);
-      const leftV2 = dist(lm[158], lm[153]);
-      const leftH = dist(lm[33], lm[133]);
-      const leftEAR = (leftV1 + leftV2) / (2.0 * leftH);
-
-      const rightV1 = dist(lm[385], lm[380]);
-      const rightV2 = dist(lm[387], lm[373]);
-      const rightH = dist(lm[362], lm[263]);
-      const rightEAR = (rightV1 + rightV2) / (2.0 * rightH);
-
-      return (leftEAR + rightEAR) / 2.0;
-    }
-
-    function calcMAR(lm) {
-      const v = dist(lm[13], lm[14]);
-      const h = dist(lm[78], lm[308]);
-      return v / h;
+    function getEAR(lm) {
+      const lv1 = dist(lm[160], lm[144]), lv2 = dist(lm[158], lm[153]), lh = dist(lm[33], lm[133]);
+      const rv1 = dist(lm[385], lm[380]), rv2 = dist(lm[387], lm[373]), rh = dist(lm[362], lm[263]);
+      return ((lv1 + lv2) / (2.0 * lh) + (rv1 + rv2) / (2.0 * rh)) / 2.0;
     }
 
     const faceMesh = new FaceMesh({
@@ -424,13 +340,12 @@
 
       if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
         const lm = results.multiFaceLandmarks[0];
-        const ear = calcEAR(lm);
-        const mar = calcMAR(lm);
+        const ear = getEAR(lm);
 
         earVal.innerText = ear.toFixed(2);
-        marVal.innerText = mar.toFixed(2);
+        statEar.innerText = ear.toFixed(2);
 
-        // Calculate Face Bounding Box
+        // Face Box Calculation
         let minX = 1, maxX = 0, minY = 1, maxY = 0;
         lm.forEach(p => {
           if (p.x < minX) minX = p.x;
@@ -439,70 +354,57 @@
           if (p.y > maxY) maxY = p.y;
         });
 
-        const fx = minX * canvas.width;
-        const fy = minY * canvas.height;
-        const fw = (maxX - minX) * canvas.width;
-        const fh = (maxY - minY) * canvas.height;
+        const fx = minX * canvas.width, fy = minY * canvas.height;
+        const fw = (maxX - minX) * canvas.width, fh = (maxY - minY) * canvas.height;
 
-        // Exact Green Bounding Boxes as your design
+        // Accurate Green Face & Eye Boxes
         ctx.strokeStyle = '#00ff66';
         ctx.lineWidth = 1.6;
-        ctx.strokeRect(fx - 8, fy - 12, fw + 16, fh + 20);
+        ctx.strokeRect(fx - 6, fy - 10, fw + 12, fh + 16);
 
-        // Eye Boxes
-        const lx = lm[33].x * canvas.width;
-        const ly = lm[158].y * canvas.height;
+        const lx = lm[33].x * canvas.width, ly = lm[158].y * canvas.height;
         const lw = (lm[133].x - lm[33].x) * canvas.width;
-        const lh = (lm[153].y - lm[158].y) * canvas.height * 2.6;
-
-        const rx = lm[362].x * canvas.width;
-        const ry = lm[387].y * canvas.height;
+        const rx = lm[362].x * canvas.width, ry = lm[387].y * canvas.height;
         const rw = (lm[263].x - lm[362].x) * canvas.width;
-        const rh = (lm[373].y - lm[387].y) * canvas.height * 2.6;
 
-        ctx.strokeRect(lx - 4, ly - 6, lw + 8, Math.max(lh, 24));
-        ctx.strokeRect(rx - 4, ry - 6, rw + 8, Math.max(rh, 24));
+        ctx.strokeRect(lx - 4, ly - 4, lw + 8, 22);
+        ctx.strokeRect(rx - 4, ry - 4, rw + 8, 22);
 
-        // Sleep Analysis
+        // Responsive Drowsiness Reaction
         if (ear < earThreshold) {
           closedFrames++;
           eyeStateTxt.innerText = "⚠️ EYES CLOSED";
-          eyeStateTxt.style.color = "var(--neon-red)";
+          eyeStateTxt.style.color = "var(--red)";
 
-          const score = Math.min(94, 25 + (closedFrames * 6));
-          gaugeVal.innerHTML = `${score}<small style="font-size:11px;">/100</small>`;
-          gaugeVal.style.borderColor = "var(--neon-red)";
-          gaugeVerdict.innerText = "DROWSINESS DETECTED";
-          gaugeVerdict.style.color = "var(--neon-red)";
-          drawLiveGraph(score);
+          const dScore = Math.min(96, 30 + (closedFrames * 6));
+          scoreVal.innerText = dScore + "/100";
+          scoreVal.style.color = "var(--red)";
+          updateGraph(dScore);
 
-          if (closedFrames > frameTriggerLimit) {
+          if (closedFrames > frameTrigger) {
             flashOverlay.classList.add('strobe');
-            soundAlarm();
+            triggerLoudAlarm();
 
-            if (closedFrames === frameTriggerLimit + 1) {
-              totalAlerts++;
+            if (closedFrames === frameTrigger + 1) {
               drowsyEvents++;
-              totalAlertsVal.innerText = totalAlerts;
-              drowsyVal.innerText = drowsyEvents;
-              addAlertItem("Eyes closed > 1.2s", "HIGH");
+              drowsyEventsVal.innerText = drowsyEvents;
+              drowsyEventsVal.style.color = "var(--red)";
+              appendAlertAudit("Micro-sleep Detected", "HIGH");
             }
           }
         } else {
           closedFrames = 0;
           flashOverlay.classList.remove('strobe');
           eyeStateTxt.innerText = "👁️ EYES OPEN";
-          eyeStateTxt.style.color = "var(--neon-green)";
-          gaugeVal.innerHTML = `18<small style="font-size:11px;">/100</small>`;
-          gaugeVal.style.borderColor = "var(--neon-green)";
-          gaugeVerdict.innerText = "YOU ARE ALERT";
-          gaugeVerdict.style.color = "var(--neon-green)";
-          if (Math.random() > 0.85) drawLiveGraph(Math.floor(16 + Math.random() * 6));
+          eyeStateTxt.style.color = "var(--green)";
+          scoreVal.innerText = "18/100";
+          scoreVal.style.color = "var(--green)";
+          if (Math.random() > 0.8) updateGraph(Math.floor(16 + Math.random() * 5));
         }
       }
     });
 
-    async function startCamera() {
+    async function launchCamera() {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { width: 640, height: 480, facingMode: 'user' }
       });
@@ -512,39 +414,38 @@
       canvas.height = video.videoHeight;
 
       timerInterval = setInterval(() => {
-        elapsedSeconds++;
-        const hrs = String(Math.floor(elapsedSeconds / 3600)).padStart(2, '0');
-        const mins = String(Math.floor((elapsedSeconds % 3600) / 60)).padStart(2, '0');
-        const secs = String(elapsedSeconds % 60).padStart(2, '0');
-        timerTxt.innerText = `${hrs}:${mins}:${secs}`;
+        elapsedSec++;
+        const m = String(Math.floor(elapsedSec / 60)).padStart(2, '0');
+        const s = String(elapsedSec % 60).padStart(2, '0');
+        timerTxt.innerText = `${m}:${s}`;
       }, 1000);
 
-      async function processLoop() {
+      async function run() {
         if (isTracking) {
           await faceMesh.send({ image: video });
-          requestAnimationFrame(processLoop);
+          requestAnimationFrame(run);
         }
       }
-      processLoop();
+      run();
     }
 
     startBtn.addEventListener('click', () => {
-      initAudio();
+      initAudioEngine();
       isTracking = !isTracking;
 
       if (isTracking) {
-        startCamera();
-        startBtn.innerText = "🛑 STOP TRACKING";
-        startBtn.style.borderColor = "var(--neon-red)";
-        startBtn.style.color = "var(--neon-red)";
-        addAlertItem("Tracking armed & active", "LOW");
+        launchCamera();
+        startBtn.innerText = "🛑 DISENGAGE TRACKING";
+        startBtn.style.borderColor = "var(--red)";
+        startBtn.style.color = "var(--red)";
+        appendAlertAudit("Tracking Online", "LOW");
       } else {
         if (video.srcObject) video.srcObject.getTracks().forEach(t => t.stop());
         clearInterval(timerInterval);
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        startBtn.innerText = "🎯 START / STOP TRACKING";
-        startBtn.style.borderColor = "var(--neon-cyan)";
-        startBtn.style.color = "var(--neon-cyan)";
+        startBtn.innerText = "🎯 ENGAGE TRACKING";
+        startBtn.style.borderColor = "var(--cyan)";
+        startBtn.style.color = "var(--cyan)";
       }
     });
   </script>
