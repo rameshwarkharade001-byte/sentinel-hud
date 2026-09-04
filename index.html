@@ -1,637 +1,378 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SENTINEL-X9 APEX HUD</title>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            background: radial-gradient(circle at 50% 20%, #081d3a 0%, #01040a 100%);
-            color: #00f2fe;
-            font-family: 'Courier New', monospace;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            min-height: 100vh;
-            padding: 8px 6px;
-            overflow-x: hidden;
-            user-select: none;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>SENTINEL-X9 // APEX AUTONOMOUS HUD</title>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --neon-blue: #00f2fe;
+      --neon-red: #ff003c;
+      --neon-green: #00ff66;
+      --neon-yellow: #ffb703;
+      --panel-bg: rgba(6, 11, 25, 0.75);
+    }
+    body {
+      background: radial-gradient(circle at center, #0a1128 0%, #02040a 100%);
+      color: var(--neon-blue);
+      font-family: 'Courier New', Courier, monospace;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding: 6px;
+      overflow-x: hidden;
+      user-select: none;
+    }
+    #flashOverlay {
+      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+      background: #fff; opacity: 0; pointer-events: none; z-index: 999;
+      transition: opacity 0.04s ease;
+    }
+    .strobe-active { opacity: 0.9 !important; background: var(--neon-red) !important; }
 
-        #flashOverlay {
-            position: fixed;
-            top: 0; left: 0; width: 100vw; height: 100vh;
-            background: #ffffff;
-            opacity: 0;
-            pointer-events: none;
-            z-index: 999;
-            transition: opacity 0.05s ease;
-        }
-        .strobe-white { opacity: 0.95 !important; background: #ffffff !important; }
-        .strobe-red { opacity: 0.85 !important; background: #ff004c !important; }
+    .hud-topbar {
+      width: 100%; max-width: 480px; display: flex; justify-content: space-between;
+      align-items: center; padding: 6px 14px;
+      background: var(--panel-bg); border: 1px solid rgba(0, 242, 254, 0.35);
+      border-radius: 8px; backdrop-filter: blur(10px); margin-bottom: 6px;
+      box-shadow: 0 0 15px rgba(0, 242, 254, 0.15);
+    }
+    .hud-title { font-size: 15px; font-weight: 900; letter-spacing: 3px; text-shadow: 0 0 10px var(--neon-blue); }
+    .hud-status-badge { font-size: 11px; padding: 2px 6px; border-radius: 4px; border: 1px solid var(--neon-green); color: var(--neon-green); }
 
-        .hud-header {
-            width: 100%;
-            max-width: 440px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 8px 12px;
-            border: 1px solid rgba(0, 242, 254, 0.4);
-            border-radius: 8px;
-            background: rgba(0, 242, 254, 0.06);
-            backdrop-filter: blur(8px);
-            margin-bottom: 6px;
-        }
-        .hud-title { font-size: 14px; font-weight: 900; letter-spacing: 4px; text-shadow: 0 0 10px #00f2fe; }
-        .hud-timer { font-size: 12px; color: #5eead4; font-weight: bold; }
+    .viewport-box {
+      position: relative; width: 100%; max-width: 480px; height: 430px;
+      border-radius: 12px; overflow: hidden; background: #000;
+      border: 2px solid var(--neon-blue);
+      box-shadow: 0 0 25px rgba(0, 242, 254, 0.25);
+    }
+    video, canvas {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      object-fit: cover; transform: scaleX(-1);
+    }
+    .night-vision-mode video {
+      filter: brightness(1.2) contrast(1.4) hue-rotate(90deg) saturate(2);
+    }
 
-        .viewport-box {
-            position: relative;
-            width: 100%;
-            max-width: 440px;
-            height: 440px;
-            border-radius: 12px;
-            overflow: hidden;
-            background: #000;
-            border: 2px solid #00f2fe;
-            box-shadow: 0 0 35px rgba(0, 242, 254, 0.35);
-        }
+    .crosshair-reticle {
+      position: absolute; top: 50%; left: 50%; width: 180px; height: 180px;
+      transform: translate(-50%, -50%); border: 1px dashed rgba(0, 242, 254, 0.35);
+      border-radius: 50%; pointer-events: none;
+    }
+    .scanner-beam {
+      position: absolute; width: 100%; height: 2px;
+      background: linear-gradient(90deg, transparent, var(--neon-blue), transparent);
+      box-shadow: 0 0 8px var(--neon-blue);
+      animation: scanAnim 2.5s infinite linear; pointer-events: none;
+    }
+    @keyframes scanAnim {
+      0% { top: 0; opacity: 0; }
+      50% { opacity: 1; }
+      100% { top: 100%; opacity: 0; }
+    }
 
-        video {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            transform: scaleX(-1);
-        }
+    .cluster-grid {
+      width: 100%; max-width: 480px; display: grid; grid-template-columns: 1fr 1fr 1fr;
+      gap: 6px; margin-top: 6px;
+    }
+    .cluster-card {
+      background: var(--panel-bg); border: 1px solid rgba(0, 242, 254, 0.25);
+      padding: 8px 10px; border-radius: 8px; text-align: center;
+      backdrop-filter: blur(8px);
+    }
+    .cluster-val { font-size: 18px; font-weight: 900; color: #fff; text-shadow: 0 0 8px var(--neon-blue); }
+    .cluster-lbl { font-size: 9px; opacity: 0.7; letter-spacing: 1px; }
 
-        canvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            transform: scaleX(-1);
-            pointer-events: none;
-        }
+    .rpm-container {
+      width: 100%; max-width: 480px; height: 10px; background: rgba(0,0,0,0.6);
+      border: 1px solid rgba(0,242,254,0.3); border-radius: 6px; margin-top: 6px;
+      overflow: hidden; display: flex; gap: 2px; padding: 1px;
+    }
+    .rpm-bar { height: 100%; flex: 1; background: rgba(0, 242, 254, 0.15); border-radius: 1px; }
+    .rpm-bar.active { background: var(--neon-green); box-shadow: 0 0 6px var(--neon-green); }
+    .rpm-bar.warning { background: var(--neon-yellow); box-shadow: 0 0 6px var(--neon-yellow); }
+    .rpm-bar.danger { background: var(--neon-red); box-shadow: 0 0 6px var(--neon-red); }
 
-        .bracket {
-            position: absolute;
-            width: 22px;
-            height: 22px;
-            border: 3px solid #00f2fe;
-            z-index: 10;
-            pointer-events: none;
-        }
-        .b-tl { top: 6px; left: 6px; border-right: none; border-bottom: none; }
-        .b-tr { top: 6px; right: 6px; border-left: none; border-bottom: none; }
-        .b-bl { bottom: 6px; left: 6px; border-right: none; border-top: none; }
-        .b-br { bottom: 6px; right: 6px; border-left: none; border-top: none; }
+    .btn-row {
+      width: 100%; max-width: 480px; display: flex; gap: 6px; margin-top: 8px;
+    }
+    .tactical-btn {
+      flex: 1; padding: 12px; background: rgba(0, 242, 254, 0.08);
+      border: 1px solid var(--neon-blue); color: var(--neon-blue);
+      font-weight: 900; font-size: 12px; letter-spacing: 2px;
+      border-radius: 6px; cursor: pointer; transition: 0.2s;
+    }
+    .tactical-btn:active { background: var(--neon-blue); color: #000; }
+    .btn-nv { border-color: var(--neon-green); color: var(--neon-green); }
 
-        .laser-sweep {
-            position: absolute;
-            width: 100%;
-            height: 2px;
-            background: linear-gradient(90deg, transparent, #00f2fe 50%, transparent);
-            box-shadow: 0 0 12px #00f2fe;
-            animation: sweep 2.5s ease-in-out infinite;
-            z-index: 8;
-            pointer-events: none;
-        }
-        @keyframes sweep {
-            0% { top: 2%; opacity: 0.2; }
-            50% { top: 96%; opacity: 0.9; }
-            100% { top: 2%; opacity: 0.2; }
-        }
-
-        .telemetry-grid {
-            width: 100%;
-            max-width: 440px;
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 5px;
-            margin-top: 6px;
-        }
-        .t-card {
-            background: rgba(0, 242, 254, 0.05);
-            border: 1px solid rgba(0, 242, 254, 0.25);
-            border-radius: 6px;
-            padding: 6px 2px;
-            text-align: center;
-        }
-        .t-label { font-size: 8px; letter-spacing: 1px; opacity: 0.75; }
-        .t-value { font-size: 12px; font-weight: 900; margin-top: 2px; }
-
-        #alertDisplay {
-            width: 100%;
-            max-width: 440px;
-            margin-top: 6px;
-            font-size: 12px;
-            letter-spacing: 2px;
-            font-weight: 900;
-            padding: 10px;
-            border-radius: 8px;
-            background: rgba(0, 242, 254, 0.08);
-            border: 1px solid #00f2fe;
-            text-align: center;
-            box-shadow: 0 0 15px rgba(0, 242, 254, 0.2);
-            transition: all 0.2s ease;
-        }
-
-        .alert-danger {
-            border-color: #ff004c !important;
-            background: rgba(255, 0, 76, 0.3) !important;
-            color: #ff004c !important;
-            animation: redAlert 0.25s infinite alternate;
-        }
-        @keyframes redAlert {
-            0% { box-shadow: 0 0 10px #ff004c; }
-            100% { box-shadow: 0 0 50px #ff004c, inset 0 0 20px #ff004c; }
-        }
-
-        .alert-warn {
-            border-color: #ff9900 !important;
-            background: rgba(255, 153, 0, 0.25) !important;
-            color: #ff9900 !important;
-        }
-
-        .action-row {
-            width: 100%;
-            max-width: 440px;
-            display: flex;
-            gap: 6px;
-            margin-top: 8px;
-        }
-        .action-btn {
-            flex: 2;
-            background: linear-gradient(90deg, #00f2fe, #0072ff);
-            color: #010611;
-            font-weight: 900;
-            font-size: 13px;
-            letter-spacing: 2px;
-            padding: 12px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            box-shadow: 0 0 15px rgba(0, 242, 254, 0.4);
-        }
-        .report-btn {
-            flex: 1;
-            background: rgba(0, 242, 254, 0.15);
-            color: #00f2fe;
-            border: 1px solid #00f2fe;
-            font-weight: 900;
-            font-size: 11px;
-            border-radius: 6px;
-            cursor: pointer;
-        }
-
-        #reportModal {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; width: 100vw; height: 100vh;
-            background: rgba(1, 4, 10, 0.92);
-            backdrop-filter: blur(10px);
-            z-index: 1000;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }
-        .report-card {
-            background: #020b18;
-            border: 2px solid #00f2fe;
-            border-radius: 12px;
-            width: 100%;
-            max-width: 360px;
-            padding: 20px;
-            box-shadow: 0 0 40px rgba(0, 242, 254, 0.4);
-            text-align: center;
-        }
-        .rc-title { font-size: 16px; font-weight: 900; letter-spacing: 4px; margin-bottom: 15px; border-bottom: 1px solid #00f2fe; padding-bottom: 6px; }
-        .rc-row { display: flex; justify-content: space-between; font-size: 12px; margin: 10px 0; border-bottom: 1px dashed rgba(0,242,254,0.3); padding-bottom: 4px; }
-        .rc-close { margin-top: 15px; width: 100%; background: #00f2fe; color: #000; border: none; padding: 10px; font-weight: bold; border-radius: 6px; cursor: pointer; }
-    </style>
+    .credit-tag {
+      margin-top: 10px; font-size: 10px; letter-spacing: 2px;
+      color: rgba(255, 255, 255, 0.6);
+    }
+    .credit-tag span { color: var(--neon-blue); font-weight: bold; }
+  </style>
 </head>
 <body>
 
-    <div id="flashOverlay"></div>
+  <div id="flashOverlay"></div>
 
-    <div class="hud-header">
-        <div class="hud-title">SENTINEL-X9 PRO</div>
-        <div class="hud-timer" id="clock">00:00:00</div>
+  <div class="hud-topbar">
+    <div class="hud-title">SENTINEL-X9</div>
+    <div class="hud-status-badge" id="sysState">ONLINE // STANDBY</div>
+  </div>
+
+  <div class="viewport-box" id="viewport">
+    <video id="webcam" playsinline autoplay muted></video>
+    <canvas id="telemetryCanvas"></canvas>
+    <div class="crosshair-reticle"></div>
+    <div class="scanner-beam"></div>
+  </div>
+
+  <div class="rpm-container" id="rpmStrip"></div>
+
+  <div class="cluster-grid">
+    <div class="cluster-card">
+      <div class="cluster-val" id="speedVal">0</div>
+      <div class="cluster-lbl">VELOCITY (KM/H)</div>
     </div>
-
-    <div class="viewport-box" id="viewport">
-        <div class="bracket b-tl"></div>
-        <div class="bracket b-tr"></div>
-        <div class="bracket b-bl"></div>
-        <div class="bracket b-br"></div>
-        <div class="laser-sweep"></div>
-        
-        <video id="inputVideo" playsinline autoplay muted></video>
-        <canvas id="outputCanvas"></canvas>
+    <div class="cluster-card">
+      <div class="cluster-val" id="gearVal" style="color:var(--neon-yellow);">DRIVE [D]</div>
+      <div class="cluster-lbl">TRANSMISSION</div>
     </div>
-
-    <div class="telemetry-grid">
-        <div class="t-card">
-            <div class="t-label">POSTURE</div>
-            <div class="t-value" id="valHead">LEVEL</div>
-        </div>
-        <div class="t-card">
-            <div class="t-label">BLINKS</div>
-            <div class="t-value" id="valBlinks">0</div>
-        </div>
-        <div class="t-card">
-            <div class="t-label">YAWNS</div>
-            <div class="t-value" id="valYawns">0</div>
-        </div>
-        <div class="t-card">
-            <div class="t-label">ATTENTION</div>
-            <div class="t-value" id="valAttention">100%</div>
-        </div>
+    <div class="cluster-card">
+      <div class="cluster-val" id="earVal">0.00</div>
+      <div class="cluster-lbl">OCULAR RATIO (EAR)</div>
     </div>
+  </div>
 
-    <div id="alertDisplay">STANDBY // TAP BUTTON TO ENGAGE</div>
-
-    <div class="action-row">
-        <button class="action-btn" id="startBtn" onclick="initEngine()">ENGAGE SENTINEL</button>
-        <button class="report-btn" onclick="openReport()">SUMMARY</button>
+  <div class="cluster-grid">
+    <div class="cluster-card">
+      <div class="cluster-val" id="yawnCount">0</div>
+      <div class="cluster-lbl">YAWN DETECTIONS</div>
     </div>
-
-    <div id="reportModal">
-        <div class="report-card">
-            <div class="rc-title">MISSION DEBRIEF</div>
-            <div class="rc-row"><span>OPERATOR:</span><strong>RAMESHWAR</strong></div>
-            <div class="rc-row"><span>SESSION TIME:</span><strong id="repTime">00:00</strong></div>
-            <div class="rc-row"><span>TOTAL BLINKS:</span><strong id="repBlinks">0</strong></div>
-            <div class="rc-row"><span>YAWN DETECTIONS:</span><strong id="repYawns">0</strong></div>
-            <div class="rc-row"><span>DROWSY ALERTS:</span><strong id="repAlerts">0</strong></div>
-            <div class="rc-row"><span>FOCUS SCORE:</span><strong id="repScore" style="color:#5eead4;">100%</strong></div>
-            <button class="rc-close" onclick="closeReport()">DISMISS REPORT</button>
-        </div>
+    <div class="cluster-card">
+      <div class="cluster-val" id="vigilanceScore" style="color:var(--neon-green);">100%</div>
+      <div class="cluster-lbl">VIGILANCE INDEX</div>
     </div>
+    <div class="cluster-card">
+      <div class="cluster-val" id="fpsVal">0</div>
+      <div class="cluster-lbl">NEURAL FPS</div>
+    </div>
+  </div>
 
+  <div class="btn-row">
+    <button class="tactical-btn" id="startBtn">ENGAGE APEX CORE</button>
+    <button class="tactical-btn btn-nv" id="nvBtn">THERMAL / NV</button>
+  </div>
+
+  <div class="credit-tag">
+    LEAD ARCHITECT: <span>RAMESHWAR KHARADE</span>
+  </div>
     <script>
-        const video = document.getElementById('inputVideo');
-        const canvas = document.getElementById('outputCanvas');
-        const ctx = canvas.getContext('2d');
-        const alertDisplay = document.getElementById('alertDisplay');
-        const viewport = document.getElementById('viewport');
-        const flashOverlay = document.getElementById('flashOverlay');
-        const startBtn = document.getElementById('startBtn');
-        const valHead = document.getElementById('valHead');
-        const valBlinks = document.getElementById('valBlinks');
-        const valYawns = document.getElementById('valYawns');
-        const valAttention = document.getElementById('valAttention');
-        const clock = document.getElementById('clock');
+    const video = document.getElementById('webcam');
+    const canvas = document.getElementById('telemetryCanvas');
+    const ctx = canvas.getContext('2d');
+    const flashOverlay = document.getElementById('flashOverlay');
+    const startBtn = document.getElementById('startBtn');
+    const nvBtn = document.getElementById('nvBtn');
+    const viewport = document.getElementById('viewport');
 
-        let sleepTimer = null;
-        let isSleeping = false;
-        let audioCtx = null;
-        let oscNode = null;
-        let gainNode = null;
-        let alarmInterval = null;
+    let audioCtx, isRunning = false, nightVision = false;
+    let yawns = 0, lastYawnTime = 0, closedEyeFrames = 0;
+    let lastFrameTime = performance.now(), fps = 0;
 
-        let blinks = 0;
-        let yawns = 0;
-        let alertCount = 0;
-        let wasClosed = false;
-        let wasYawning = false;
-        let startTimestamp = null;
-        let lastWakeCall = 0;
-        let reticleAngle = 0;
-        let faceMesh = null;
-        let strobeToggle = false;
+    // RPM 24 Gauge Segments
+    const rpmStrip = document.getElementById('rpmStrip');
+    for (let i = 0; i < 24; i++) {
+      const bar = document.createElement('div');
+      bar.className = 'rpm-bar';
+      rpmStrip.appendChild(bar);
+    }
+    const rpmBars = document.querySelectorAll('.rpm-bar');
 
-        function runClock() {
-            if (!startTimestamp) return;
-            const diff = Math.floor((Date.now() - startTimestamp) / 1000);
-            const h = String(Math.floor(diff / 3600)).padStart(2, '0');
-            const m = String(Math.floor((diff % 3600) / 60)).padStart(2, '0');
-            const s = String(diff % 60).padStart(2, '0');
-            clock.innerText = `${h}:${m}:${s}`;
+    function updateRpm(ratio) {
+      const activeCount = Math.floor(ratio * rpmBars.length);
+      rpmBars.forEach((bar, idx) => {
+        bar.className = 'rpm-bar';
+        if (idx < activeCount) {
+          if (idx > 18) bar.classList.add('danger', 'active');
+          else if (idx > 13) bar.classList.add('warning', 'active');
+          else bar.classList.add('active');
         }
+      });
+    }
 
-        function triggerFlashbang() {
-            strobeToggle = !strobeToggle;
-            if (strobeToggle) {
-                flashOverlay.className = 'strobe-white';
-            } else {
-                flashOverlay.className = 'strobe-red';
+    // Audio Engine
+    function initAudio() {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+
+    function triggerSawtoothAlarm() {
+      if (!audioCtx) return;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(880, audioCtx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(320, audioCtx.currentTime + 0.3);
+      gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.3);
+    }
+
+    function speakAlert(text) {
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const msg = new SpeechSynthesisUtterance(text);
+        msg.lang = 'mr-IN';
+        msg.rate = 1.1;
+        window.speechSynthesis.speak(msg);
+      }
+    }
+
+    function distance(p1, p2) {
+      return Math.hypot(p1.x - p2.x, p1.y - p2.y);
+    }
+
+    function getEAR(landmarks) {
+      const leftV1 = distance(landmarks[160], landmarks[144]);
+      const leftV2 = distance(landmarks[158], landmarks[153]);
+      const leftH = distance(landmarks[33], landmarks[133]);
+      const leftEAR = (leftV1 + leftV2) / (2.0 * leftH);
+
+      const rightV1 = distance(landmarks[385], landmarks[380]);
+      const rightV2 = distance(landmarks[387], landmarks[373]);
+      const rightH = distance(landmarks[362], landmarks[263]);
+      const rightEAR = (rightV1 + rightV2) / (2.0 * rightH);
+
+      return (leftEAR + rightEAR) / 2.0;
+    }
+
+    function getMAR(landmarks) {
+      const v = distance(landmarks[13], landmarks[14]);
+      const h = distance(landmarks[78], landmarks[308]);
+      return v / h;
+    }
+
+    const faceMesh = new FaceMesh({
+      locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
+    });
+    faceMesh.setOptions({ maxNumFaces: 1, refineLandmarks: true, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5 });
+
+    faceMesh.onResults((results) => {
+      const now = performance.now();
+      fps = Math.round(1000 / (now - lastFrameTime));
+      lastFrameTime = now;
+      document.getElementById('fpsVal').innerText = fps;
+
+      ctx.save();
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
+        const landmarks = results.multiFaceLandmarks[0];
+        const ear = getEAR(landmarks);
+        const mar = getMAR(landmarks);
+
+        document.getElementById('earVal').innerText = ear.toFixed(2);
+        document.getElementById('speedVal').innerText = Math.floor(75 + Math.sin(now/1000) * 8);
+        updateRpm(Math.min(1, ear * 3.5));
+
+        const leftEye = landmarks[133];
+        const rightEye = landmarks[362];
+        const cx = ((leftEye.x + rightEye.x) / 2) * canvas.width;
+        const cy = ((leftEye.y + rightEye.y) / 2) * canvas.height;
+
+        ctx.strokeStyle = '#00f2fe';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(cx, cy, 65, 0, 2 * Math.PI);
+        ctx.stroke();
+        ctx.strokeRect(cx - 80, cy - 60, 160, 120);
+
+        if (ear < 0.21) {
+          closedEyeFrames++;
+          if (closedEyeFrames > 12) {
+            flashOverlay.classList.add('strobe-active');
+            triggerSawtoothAlarm();
+            document.getElementById('sysState').innerText = "CRITICAL // SLEEP INTERCEPT";
+            document.getElementById('sysState').style.borderColor = "#ff003c";
+            document.getElementById('sysState').style.color = "#ff003c";
+            document.getElementById('vigilanceScore').innerText = "ALERT!";
+            document.getElementById('vigilanceScore').style.color = "#ff003c";
+            if (closedEyeFrames === 15) {
+              speakAlert("अरे उठ रे! डोळे उघडे ठेव!");
             }
-            setTimeout(() => { flashOverlay.className = ''; }, 100);
+          }
+        } else {
+          closedEyeFrames = 0;
+          flashOverlay.classList.remove('strobe-active');
+          document.getElementById('sysState').innerText = "TRACKING // OPTIMAL";
+          document.getElementById('sysState').style.borderColor = "#00ff66";
+          document.getElementById('sysState').style.color = "#00ff66";
+          document.getElementById('vigilanceScore').innerText = "98%";
+          document.getElementById('vigilanceScore').style.color = "#00ff66";
         }
 
-        function triggerVoiceWakeup() {
-            const now = Date.now();
-            if (now - lastWakeCall > 2400) {
-                lastWakeCall = now;
-                window.speechSynthesis.cancel();
-                const utter = new SpeechSynthesisUtterance("अरे उठ रे पागल! उठ! डोळे उघडे ठेव!");
-                utter.lang = 'mr-IN';
-                utter.rate = 1.25;
-                utter.pitch = 1.3;
-                window.speechSynthesis.speak(utter);
-            }
+        if (mar > 0.65 && (now - lastYawnTime) > 3500) {
+          yawns++;
+          lastYawnTime = now;
+          document.getElementById('yawnCount').innerText = yawns;
+          triggerSawtoothAlarm();
+          speakAlert("जांभई डिटेक्ट झाली! थकवा जाणवतोय!");
         }
+      } else {
+        document.getElementById('sysState').innerText = "OPERATOR LOST // ACQUIRING";
+        document.getElementById('sysState').style.borderColor = "#ffb703";
+        document.getElementById('sysState').style.color = "#ffb703";
+        updateRpm(0.1);
+      }
+      ctx.restore();
+    });
 
-        function startLoudAlarm() {
-            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            if (audioCtx.state === 'suspended') audioCtx.resume();
-            if (oscNode) return;
+    async function initCamera() {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { width: 640, height: 480, facingMode: 'user' }
+      });
+      video.srcObject = stream;
+      await video.play();
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
 
-            oscNode = audioCtx.createOscillator();
-            gainNode = audioCtx.createGain();
-            gainNode.gain.setValueAtTime(1.0, audioCtx.currentTime);
-
-            oscNode.type = 'sawtooth';
-            oscNode.frequency.setValueAtTime(800, audioCtx.currentTime);
-            alarmInterval = setInterval(() => {
-                if (oscNode) {
-                    oscNode.frequency.setValueAtTime(700, audioCtx.currentTime);
-                    oscNode.frequency.linearRampToValueAtTime(1500, audioCtx.currentTime + 0.18);
-                    triggerFlashbang();
-                }
-            }, 200);
-
-            oscNode.connect(gainNode);
-            gainNode.connect(audioCtx.destination);
-            oscNode.start();
+      async function processLoop() {
+        if (isRunning) {
+          await faceMesh.send({ image: video });
+          requestAnimationFrame(processLoop);
         }
+      }
+      processLoop();
+    }
 
-        function stopLoudAlarm() {
-            if (oscNode) {
-                clearInterval(alarmInterval);
-                oscNode.stop();
-                oscNode.disconnect();
-                oscNode = null;
-                flashOverlay.className = '';
-            }
-        }
+    startBtn.addEventListener('click', () => {
+      initAudio();
+      if (!isRunning) {
+        isRunning = true;
+        initCamera();
+        startBtn.innerText = "SYSTEM ACTIVE";
+        startBtn.style.background = "#00ff66";
+        startBtn.style.color = "#000";
+      }
+    });
 
-        function dist(p1, p2) {
-            return Math.hypot(p1.x - p2.x, p1.y - p2.y);
-        }
-
-        function getEAR(t, b, l, r) {
-            return dist(t, b) / dist(l, r);
-        }
-
-        function getMAR(topLip, btmLip, leftLip, rightLip) {
-            return dist(topLip, btmLip) / dist(leftLip, rightLip);
-        }
-
-        function drawGyroReticle(center, color) {
-            const cx = center.x * canvas.width;
-            const cy = center.y * canvas.height;
-            reticleAngle += 0.04;
-
-            ctx.save();
-            ctx.translate(cx, cy);
-            ctx.strokeStyle = color;
-            ctx.lineWidth = 1.6;
-            ctx.shadowColor = color;
-            ctx.shadowBlur = 8;
-
-            ctx.beginPath();
-            ctx.arc(0, 0, 18, reticleAngle, reticleAngle + Math.PI * 1.5);
-            ctx.stroke();
-
-            ctx.beginPath();
-            ctx.arc(0, 0, 10, -reticleAngle * 1.5, -reticleAngle * 1.5 + Math.PI);
-            ctx.stroke();
-
-            ctx.fillStyle = color;
-            ctx.beginPath();
-            ctx.arc(0, 0, 2.5, 0, 2 * Math.PI);
-            ctx.fill();
-
-            ctx.restore();
-        }
-
-        // New 3D Rotating Hexagon on Face
-        function drawFaceHexagon(nose, color) {
-            const cx = nose.x * canvas.width;
-            const cy = nose.y * canvas.height;
-            const r = 90;
-
-            ctx.save();
-            ctx.strokeStyle = color;
-            ctx.lineWidth = 1.2;
-            ctx.setLineDash([4, 6]);
-            ctx.beginPath();
-            for (let i = 0; i < 6; i++) {
-                const angle = (Math.PI / 3) * i + (reticleAngle * 0.4);
-                const hx = cx + r * Math.cos(angle);
-                const hy = cy + r * Math.sin(angle);
-                if (i === 0) ctx.moveTo(hx, hy);
-                else ctx.lineTo(hx, hy);
-            }
-            ctx.closePath();
-            ctx.stroke();
-            ctx.restore();
-        }
-
-        function renderPolygon(landmarks, indices, color) {
-            ctx.strokeStyle = color;
-            ctx.lineWidth = 2.0;
-            ctx.shadowColor = color;
-            ctx.shadowBlur = 10;
-            ctx.beginPath();
-            for (let i = 0; i < indices.length; i++) {
-                const pt = landmarks[indices[i]];
-                const x = pt.x * canvas.width;
-                const y = pt.y * canvas.height;
-                if (i === 0) ctx.moveTo(x, y);
-                else ctx.lineTo(x, y);
-            }
-            ctx.closePath();
-            ctx.stroke();
-            ctx.shadowBlur = 0;
-        }
-
-        const leftEye = [33, 160, 158, 133, 153, 144];
-        const rightEye = [362, 385, 387, 263, 373, 380];
-        const mouthIndices = [61, 81, 13, 311, 291, 402, 14, 178];
-
-        function onResults(res) {
-            runClock();
-            canvas.width = video.videoWidth || 440;
-            canvas.height = video.videoHeight || 440;
-
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            if (!res.multiFaceLandmarks || res.multiFaceLandmarks.length === 0) {
-                alertDisplay.innerText = "SEARCHING OPERATOR // LOCK LOST";
-                valHead.innerText = "LOST";
-                valAttention.innerText = "--";
-                viewport.classList.remove('alert-danger', 'alert-warn');
-                clearTimeout(sleepTimer);
-                sleepTimer = null;
-                isSleeping = false;
-                stopLoudAlarm();
-                return;
-            }
-
-            const lm = res.multiFaceLandmarks[0];
-
-            // New Proximity Check
-            const faceWidth = dist(lm[234], lm[454]);
-            const isTooClose = faceWidth > 0.65;
-            const isTooFar = faceWidth < 0.22;
-
-            const nose = lm[1];
-            const chin = lm[152];
-            const headDropRatio = (chin.y - nose.y);
-            const isHeadDropped = headDropRatio < 0.12;
-
-            valHead.innerText = isHeadDropped ? "SLUMP" : "LEVEL";
-            valHead.style.color = isHeadDropped ? "#ff9900" : "#5eead4";
-
-            const lEAR = getEAR(lm[159], lm[145], lm[33], lm[133]);
-            const rEAR = getEAR(lm[386], lm[374], lm[362], lm[263]);
-            const ear = (lEAR + rEAR) / 2;
-
-            const mar = getMAR(lm[13], lm[14], lm[61], lm[291]);
-            const isYawning = mar > 0.65;
-
-            if (isYawning && !wasYawning) {
-                yawns++;
-                valYawns.innerText = yawns;
-            }
-            wasYawning = isYawning;
-
-            const isClosed = ear < 0.21;
-            if (isClosed && !wasClosed) {
-                blinks++;
-                valBlinks.innerText = blinks;
-            }
-            wasClosed = isClosed;
-
-            let score = Math.min(100, Math.max(0, Math.floor(ear * 250) - (yawns * 4)));
-            if (isClosed || isHeadDropped) score = 0;
-            valAttention.innerText = score + "%";
-
-            const eyeColor = isClosed ? "#ff004c" : "#00f2fe";
-            const mouthColor = isYawning ? "#ff9900" : "rgba(0, 242, 254, 0.35)";
-
-            renderPolygon(lm, leftEye, eyeColor);
-            renderPolygon(lm, rightEye, eyeColor);
-            renderPolygon(lm, mouthIndices, mouthColor);
-
-            drawGyroReticle(lm[468] || lm[159], eyeColor);
-            drawGyroReticle(lm[473] || lm[386], eyeColor);
-            drawFaceHexagon(nose, isClosed ? "rgba(255,0,76,0.5)" : "rgba(0,242,254,0.3)");
-
-            if (isClosed) {
-                if (!sleepTimer && !isSleeping) {
-                    sleepTimer = setTimeout(() => {
-                        isSleeping = true;
-                        alertCount++;
-                    }, 1000);
-                }
-                if (isSleeping) {
-                    alertDisplay.innerText = "CRITICAL ALERT // EYES CLOSED! WAKE UP!";
-                    viewport.classList.remove('alert-warn');
-                    viewport.classList.add('alert-danger');
-                    startLoudAlarm();
-                    triggerVoiceWakeup();
-                } else {
-                    alertDisplay.innerText = "WARNING // DROWSINESS DETECTED...";
-                }
-            } else if (isHeadDropped) {
-                clearTimeout(sleepTimer);
-                sleepTimer = null;
-                isSleeping = false;
-                stopLoudAlarm();
-                viewport.classList.remove('alert-danger');
-                viewport.classList.add('alert-warn');
-                alertDisplay.innerText = "POSTURE WARNING // HEAD SLUMP DETECTED";
-            } else if (isYawning) {
-                clearTimeout(sleepTimer);
-                sleepTimer = null;
-                isSleeping = false;
-                stopLoudAlarm();
-                viewport.classList.remove('alert-danger');
-                viewport.classList.add('alert-warn');
-                alertDisplay.innerText = "FATIGUE DETECTED // YAWN CONFIRMED";
-            } else if (isTooClose) {
-                alertDisplay.innerText = "PROXIMITY WARNING // TOO CLOSE TO SENSOR";
-            } else if (isTooFar) {
-                alertDisplay.innerText = "RANGE WARNING // SUBJECT TOO FAR";
-            } else {
-                clearTimeout(sleepTimer);
-                sleepTimer = null;
-                isSleeping = false;
-                viewport.classList.remove('alert-danger', 'alert-warn');
-                stopLoudAlarm();
-                alertDisplay.innerText = "ALL SYSTEMS NOMINAL // OPTICAL LOCK SECURE";
-            }
-        }
-
-        async function initEngine() {
-            startBtn.style.display = 'none';
-            alertDisplay.innerText = "REQUESTING CAMERA ACCESS...";
-
-            try {
-                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                startTimestamp = Date.now();
-
-                const stream = await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode: "user", width: { ideal: 480 }, height: { ideal: 480 } },
-                    audio: false
-                });
-
-                video.srcObject = stream;
-                await video.play();
-
-                alertDisplay.innerText = "LOADING AI MODELS...";
-
-                faceMesh = new FaceMesh({
-                    locateFile: (f) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${f}`
-                });
-
-                faceMesh.setOptions({
-                    maxNumFaces: 1,
-                    refineLandmarks: true,
-                    minDetectionConfidence: 0.5,
-                    minTrackingConfidence: 0.5
-                });
-
-                faceMesh.onResults(onResults);
-
-                async function processFrame() {
-                    if (video.readyState >= 2) {
-                        await faceMesh.send({ image: video });
-                    }
-                    requestAnimationFrame(processFrame);
-                }
-
-                alertDisplay.innerText = "SYSTEM ARMED // OPTICAL LOCK ACTIVE";
-                processFrame();
-
-            } catch (err) {
-                console.error(err);
-                alertDisplay.innerText = "ERROR: CAMERA PERMISSION DENIED";
-                startBtn.style.display = 'block';
-            }
-        }
-
-        function openReport() {
-            document.getElementById('repTime').innerText = clock.innerText;
-            document.getElementById('repBlinks').innerText = blinks;
-            document.getElementById('repYawns').innerText = yawns;
-            document.getElementById('repAlerts').innerText = alertCount;
-            document.getElementById('repScore').innerText = valAttention.innerText;
-            document.getElementById('reportModal').style.display = 'flex';
-        }
-
-        function closeReport() {
-            document.getElementById('reportModal').style.display = 'none';
-        }
-    </script>
+    nvBtn.addEventListener('click', () => {
+      nightVision = !nightVision;
+      if (nightVision) {
+        viewport.classList.add('night-vision-mode');
+        nvBtn.innerText = "NORMAL OPTICS";
+      } else {
+        viewport.classList.remove('night-vision-mode');
+        nvBtn.innerText = "THERMAL / NV";
+      }
+    });
+  </script>
 </body>
 </html>
