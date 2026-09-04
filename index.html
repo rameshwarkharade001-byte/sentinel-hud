@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>SENTINEL-X9 PRO // ENTERPRISE AI</title>
+  <title>SENTINEL-X9 PRO // AUTONOMOUS AI</title>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace; }
     :root {
       --bg: #020813;
       --panel: #06152b;
-      --card: rgba(8, 24, 48, 0.9);
+      --card: rgba(8, 24, 48, 0.95);
       --cyan: #00f2fe;
       --green: #00ff66;
       --red: #ff003c;
@@ -19,51 +19,36 @@
     }
     body { background: var(--bg); color: #e2f1ff; width: 100%; min-height: 100vh; padding: 8px; overflow-x: hidden; user-select: none; }
 
-    /* TOP BAR */
-    .topbar { display: flex; justify-content: space-between; align-items: center; padding: 6px 10px; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px; }
-    .brand { font-size: 16px; font-weight: 900; letter-spacing: 2px; color: #fff; }
+    .topbar { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px; }
+    .brand { font-size: 15px; font-weight: 900; letter-spacing: 2px; color: #fff; }
     .brand span { color: var(--cyan); }
     .sys-badge { background: rgba(0,255,102,0.15); border: 1px solid var(--green); color: var(--green); padding: 3px 10px; border-radius: 12px; font-size: 10px; font-weight: bold; }
 
-    /* TAB NAVIGATION */
-    .tab-bar { display: flex; gap: 4px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 8px; scrollbar-width: none; }
-    .tab-bar::-webkit-scrollbar { display: none; }
-    .tab-btn { flex: 0 0 auto; padding: 8px 12px; background: var(--card); border: 1px solid var(--border); border-radius: 6px; font-size: 11px; font-weight: bold; color: #8ba9c9; cursor: pointer; }
+    .tab-bar { display: flex; gap: 6px; margin-bottom: 8px; }
+    .tab-btn { flex: 1; padding: 8px 4px; background: var(--card); border: 1px solid var(--border); border-radius: 6px; font-size: 11px; font-weight: bold; color: #8ba9c9; cursor: pointer; text-align: center; }
     .tab-btn.active { background: rgba(0,242,254,0.18); border-color: var(--cyan); color: #fff; }
 
-    /* VIEWS */
-    .view-section { display: none; }
-    .view-section.active { display: flex; flex-direction: column; gap: 8px; }
+    .cam-box { position: relative; width: 100%; height: 280px; background: #000; border: 2px solid var(--cyan); border-radius: 10px; overflow: hidden; margin-bottom: 8px; }
+    #webcam { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
+    #canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); pointer-events: none; }
+    .cam-meta-top { position: absolute; top: 6px; left: 8px; right: 8px; display: flex; justify-content: space-between; font-size: 10px; font-weight: bold; color: var(--green); pointer-events: none; z-index: 2; }
+    .cam-meta-bot { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(2,8,19,0.92); border-top: 1px solid var(--border); padding: 6px 10px; display: flex; justify-content: space-between; font-size: 11px; z-index: 2; }
 
-    /* CAMERA VIEWPORT */
-    .cam-box { position: relative; width: 100%; height: 290px; background: #000; border: 2px solid var(--cyan); border-radius: 10px; overflow: hidden; }
-    video, canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
-    .cam-meta-top { position: absolute; top: 6px; left: 8px; right: 8px; display: flex; justify-content: space-between; font-size: 10px; font-weight: bold; color: var(--green); pointer-events: none; }
-    .cam-meta-bot { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(2,8,19,0.9); border-top: 1px solid var(--border); padding: 6px 10px; display: flex; justify-content: space-between; font-size: 11px; }
-
-    /* METRIC ROW */
-    .metric-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+    .metric-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-bottom: 8px; }
     .m-card { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 8px 4px; text-align: center; }
     .m-val { font-size: 16px; font-weight: 900; color: #fff; }
     .m-lbl { font-size: 8px; opacity: 0.7; letter-spacing: 0.5px; margin-top: 2px; }
 
-    /* SMART ALARM STRIP */
-    .alarm-box { display: flex; justify-content: space-between; align-items: center; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; }
-    .vol-btn { width: 28px; height: 28px; background: #000; border: 1px solid var(--cyan); color: var(--cyan); font-size: 14px; font-weight: bold; border-radius: 4px; }
+    .alarm-box { display: flex; justify-content: space-between; align-items: center; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; margin-bottom: 8px; }
+    .vol-btn { width: 30px; height: 30px; background: #000; border: 1px solid var(--cyan); color: var(--cyan); font-size: 14px; font-weight: bold; border-radius: 4px; cursor: pointer; }
 
-    /* LIVE GRAPH */
-    .graph-box { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 10px; }
-    .graph-title { font-size: 10px; font-weight: bold; letter-spacing: 1px; margin-bottom: 6px; color: var(--cyan); }
-    canvas#graphCanvas { width: 100%; height: 75px; background: rgba(0,0,0,0.4); border-radius: 4px; }
+    .graph-box { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 8px; margin-bottom: 8px; }
+    .graph-title { font-size: 10px; font-weight: bold; letter-spacing: 1px; margin-bottom: 4px; color: var(--cyan); }
+    #graphCanvas { display: block; width: 100%; height: 60px; background: rgba(0,0,0,0.5); border-radius: 4px; border: 1px solid rgba(0,242,254,0.15); }
 
-    /* ACTION BUTTONS */
     .btn-row { display: flex; gap: 6px; margin-top: 4px; }
     .main-btn { flex: 2; padding: 14px; background: rgba(0,242,254,0.15); border: 2px solid var(--cyan); border-radius: 8px; color: var(--cyan); font-size: 13px; font-weight: 900; letter-spacing: 1px; cursor: pointer; }
-    .opt-sel { flex: 1; padding: 12px 6px; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; color: var(--cyan); font-size: 11px; font-weight: bold; outline: none; }
-
-    /* INTERACTIVE SUB-PAGES */
-    .panel-card { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-size: 12px; line-height: 1.6; }
-    .log-item { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.06); font-size: 11px; }
+    .opt-sel { flex: 1; padding: 12px 4px; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; color: var(--cyan); font-size: 11px; font-weight: bold; outline: none; }
 
     #flashOverlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: var(--red); opacity: 0; pointer-events: none; z-index: 999; }
     .strobe { opacity: 0.85 !important; }
@@ -77,112 +62,67 @@
     <div class="sys-badge" id="badgeStatus">● ACTIVE 2.0</div>
   </header>
 
-  <!-- NAVIGATION TABS -->
   <nav class="tab-bar">
-    <button class="tab-btn active" onclick="switchTab('dashboard', this)">📊 DASHBOARD</button>
-    <button class="tab-btn" onclick="switchTab('stats', this)">📈 STATISTICS</button>
-    <button class="tab-btn" onclick="switchTab('alerts', this)">🔔 ALERTS (<span id="alertCountBadge">2</span>)</button>
-    <button class="tab-btn" onclick="switchTab('settings', this)">⚙️ SETTINGS</button>
+    <button class="tab-btn active" id="tab1">📊 DASHBOARD</button>
+    <button class="tab-btn" id="tab2">📈 STATISTICS</button>
+    <button class="tab-btn" id="tab3">🔔 ALERTS (<span id="alertCountBadge">0</span>)</button>
   </nav>
 
-  <!-- TAB 1: REAL DASHBOARD -->
-  <div id="tab-dashboard" class="view-section active">
-    <div class="cam-box">
-      <video id="webcam" playsinline autoplay muted></video>
-      <canvas id="canvas"></canvas>
-      <div class="cam-meta-top">
-        <span>● LIVE AI FEED</span>
-        <span>CAM: FRONT HD</span>
-      </div>
-      <div class="cam-meta-bot">
-        <span id="eyeStateTxt" style="color:var(--green); font-weight:bold;">👁️ EYES OPEN</span>
-        <span>EAR: <b id="earVal" style="color:var(--cyan);">0.23</b></span>
-        <span>SCORE: <b id="scoreVal" style="color:var(--green);">18/100</b></span>
-      </div>
+  <div class="cam-box">
+    <video id="webcam" playsinline autoplay muted></video>
+    <canvas id="canvas"></canvas>
+    <div class="cam-meta-top">
+      <span>● LIVE AI FEED</span>
+      <span>CAM: FRONT HD</span>
     </div>
-
-    <div class="metric-row">
-      <div class="m-card">
-        <div class="m-val" id="timerTxt">00:00</div>
-        <div class="m-lbl">SESSION TIME</div>
-      </div>
-      <div class="m-card">
-        <div class="m-val" id="totalAlertsVal">0</div>
-        <div class="m-lbl">TOTAL ALERTS</div>
-      </div>
-      <div class="m-card">
-        <div class="m-val" id="drowsyEventsVal" style="color:var(--green);">0</div>
-        <div class="m-lbl">DROWSY EVENTS</div>
-      </div>
-    </div>
-
-    <div class="alarm-box">
-      <div>
-        <div style="font-size:11px; font-weight:bold; color:var(--green);">🔊 ALARM: REAL SIREN ACTIVE</div>
-        <div style="font-size:9px; opacity:0.7;">VOL: <span id="volTxt">80%</span></div>
-      </div>
-      <div style="display:flex; gap:6px;">
-        <button class="vol-btn" onclick="adjustVolume(-20)">-</button>
-        <button class="vol-btn" onclick="adjustVolume(20)">+</button>
-      </div>
-    </div>
-
-    <div class="graph-box">
-      <div class="graph-title">DROWSINESS TELEMETRY GRAPH (REAL-TIME)</div>
-      <canvas id="graphCanvas" width="340" height="75"></canvas>
-    </div>
-
-    <div class="btn-row">
-      <select class="opt-sel" id="sensSelect" onchange="updateSensitivity(this.value)">
-        <option value="med">SENSITIVITY: MED</option>
-        <option value="high">SENSITIVITY: HIGH</option>
-        <option value="low">SENSITIVITY: LOW</option>
-      </select>
-      <button class="main-btn" id="startBtn">🎯 ENGAGE TRACKING</button>
+    <div class="cam-meta-bot">
+      <span id="eyeStateTxt" style="color:var(--green); font-weight:bold;">👁️ EYES OPEN</span>
+      <span>EAR: <b id="earVal" style="color:var(--cyan);">0.22</b></span>
+      <span>SCORE: <b id="scoreVal" style="color:var(--green);">18/100</b></span>
     </div>
   </div>
 
-  <!-- TAB 2: REAL STATISTICS -->
-  <div id="tab-stats" class="view-section">
-    <div class="panel-card">
-      <h3 style="color:var(--cyan); margin-bottom:8px;">DRIVER VIGILANCE STATS</h3>
-      <p><b>Neural Pipeline:</b> MediaPipe 468 Dense Landmarks</p>
-      <p><b>Mean Eye Aspect Ratio (EAR):</b> <span id="statEar">0.24</span></p>
-      <p><b>Blink Frequency:</b> 18 Blinks / Min (Nominal)</p>
-      <p><b>Head Orientation:</b> Centered (Roll 0.2°, Pitch 1.1°)</p>
-      <p><b>Hardware Acceleration:</b> WebGL 2.0 Shader Engine</p>
+  <div class="metric-row">
+    <div class="m-card">
+      <div class="m-val" id="timerTxt">00:00</div>
+      <div class="m-lbl">SESSION TIME</div>
+    </div>
+    <div class="m-card">
+      <div class="m-val" id="totalAlertsVal">0</div>
+      <div class="m-lbl">TOTAL ALERTS</div>
+    </div>
+    <div class="m-card">
+      <div class="m-val" id="drowsyEventsVal" style="color:var(--green);">0</div>
+      <div class="m-lbl">DROWSY EVENTS</div>
     </div>
   </div>
 
-  <!-- TAB 3: REAL ALERTS LOG -->
-  <div id="tab-alerts" class="view-section">
-    <div class="panel-card">
-      <h3 style="color:var(--cyan); margin-bottom:8px;">INCIDENT AUDIT LOG</h3>
-      <div id="logContainer">
-        <div class="log-item"><span>Sys Armed</span><b style="color:var(--green);">OK</b></div>
-      </div>
+  <div class="alarm-box">
+    <div>
+      <div style="font-size:11px; font-weight:bold; color:var(--green);">🔊 ALARM: REAL SIREN ACTIVE</div>
+      <div style="font-size:9px; opacity:0.7;">VOL: <span id="volTxt">100%</span></div>
+    </div>
+    <div style="display:flex; gap:6px;">
+      <button class="vol-btn" onclick="adjustVol(-20)">-</button>
+      <button class="vol-btn" onclick="adjustVol(20)">+</button>
     </div>
   </div>
 
-  <!-- TAB 4: REAL SETTINGS -->
-  <div id="tab-settings" class="view-section">
-    <div class="panel-card">
-      <h3 style="color:var(--cyan); margin-bottom:8px;">HARDWARE & DETECTION CONFIG</h3>
-      <div style="margin-bottom:10px;">
-        <label style="display:block; margin-bottom:4px;">Strobe Flash Intensity:</label>
-        <input type="range" min="20" max="100" value="85" style="width:100%; accent-color:var(--cyan);">
-      </div>
-      <div style="margin-bottom:10px;">
-        <label style="display:block; margin-bottom:4px;">Audio Alarm Profile:</label>
-        <select class="opt-sel" style="width:100%;" onchange="changeTone(this.value)">
-          <option value="siren">High-Frequency Intercept Siren</option>
-          <option value="pulse">Tactical Warning Pulses</option>
-        </select>
-      </div>
-      <button class="main-btn" style="width:100%; padding:10px; margin-top:6px;" onclick="testAlarmDemo()">TEST ALARM SOUND</button>
-    </div>
+  <div class="graph-box">
+    <div class="graph-title">DROWSINESS TELEMETRY GRAPH (REAL-TIME)</div>
+    <canvas id="graphCanvas" width="360" height="60"></canvas>
   </div>
-    <script>
+
+  <div class="btn-row">
+    <select class="opt-sel" id="sensSelect">
+      <option value="med">SENSITIVITY: MED</option>
+      <option value="high">SENSITIVITY: HIGH</option>
+      <option value="low">SENSITIVITY: LOW</option>
+    </select>
+    <button class="main-btn" id="startBtn">🎯 ENGAGE TRACKING</button>
+  </div>
+
+  <script>
     const video = document.getElementById('webcam');
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
@@ -196,131 +136,87 @@
     const timerTxt = document.getElementById('timerTxt');
     const totalAlertsVal = document.getElementById('totalAlertsVal');
     const drowsyEventsVal = document.getElementById('drowsyEventsVal');
-    const logContainer = document.getElementById('logContainer');
     const alertCountBadge = document.getElementById('alertCountBadge');
     const volTxt = document.getElementById('volTxt');
-    const statEar = document.getElementById('statEar');
+    const sensSelect = document.getElementById('sensSelect');
 
     let isTracking = false;
     let audioCtx = null;
-    let volumeLevel = 0.8;
+    let volumeLevel = 1.0;
     let elapsedSec = 0;
     let timerInterval = null;
     let totalAlerts = 0;
     let drowsyEvents = 0;
     let closedFrames = 0;
     let earThreshold = 0.18;
-    let frameTrigger = 10;
-    let toneType = 'siren';
-    let graphData = [18, 20, 18, 22, 19, 21, 18, 24, 18, 19, 22, 18];
+    let frameTrigger = 8;
+    let graphData = [15, 18, 16, 20, 18, 17, 19, 18, 22, 18, 16, 18];
 
-    // Real Tab Switching Logic
-    window.switchTab = function(tabName, btn) {
-      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-      document.querySelectorAll('.view-section').forEach(v => v.classList.remove('active'));
-      btn.classList.add('active');
-      const target = document.getElementById('tab-' + tabName);
-      if (target) target.classList.add('active');
-    };
-
-    // Live Telemetry Graph Engine
-    function updateGraph(val) {
-      graphData.push(val);
-      if (graphData.length > 24) graphData.shift();
+    function drawGraph(newVal) {
+      graphData.push(newVal);
+      if (graphData.length > 30) graphData.shift();
 
       gCtx.clearRect(0, 0, graphCanvas.width, graphCanvas.height);
-
-      // Grid Lines
-      gCtx.strokeStyle = 'rgba(0, 242, 254, 0.12)';
+      gCtx.strokeStyle = 'rgba(0, 242, 254, 0.15)';
       gCtx.lineWidth = 1;
-      for (let y = 15; y < 75; y += 20) {
+      for (let y = 15; y < 60; y += 15) {
         gCtx.beginPath();
         gCtx.moveTo(0, y);
         gCtx.lineTo(graphCanvas.width, y);
         gCtx.stroke();
       }
 
-      // Glowing Curve
       gCtx.strokeStyle = '#00ff66';
       gCtx.lineWidth = 2;
       gCtx.beginPath();
       const step = graphCanvas.width / (graphData.length - 1);
       graphData.forEach((pt, i) => {
         const x = i * step;
-        const y = 70 - (pt * 0.6);
+        const y = 55 - (pt * 0.5);
         if (i === 0) gCtx.moveTo(x, y);
         else gCtx.lineTo(x, y);
       });
       gCtx.stroke();
 
-      // Current Point Marker
       const lastX = (graphData.length - 1) * step;
-      const lastY = 70 - (val * 0.6);
+      const lastY = 55 - (newVal * 0.5);
       gCtx.fillStyle = '#00f2fe';
       gCtx.beginPath();
-      gCtx.arc(lastX, lastY, 3.5, 0, Math.PI * 2);
+      gCtx.arc(lastX, lastY, 3, 0, Math.PI * 2);
       gCtx.fill();
     }
-    setInterval(() => { if (!isTracking) updateGraph(Math.floor(16 + Math.random() * 6)); }, 1200);
+    drawGraph(18);
 
-    // Audio Driver (Mobile-Optimized)
     function initAudioEngine() {
       if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       if (audioCtx.state === 'suspended') audioCtx.resume();
     }
 
-    window.adjustVolume = function(delta) {
-      volumeLevel = Math.max(0, Math.min(1, volumeLevel + (delta / 100)));
+    window.adjustVol = function(d) {
+      volumeLevel = Math.max(0, Math.min(1, volumeLevel + (d / 100)));
       volTxt.innerText = Math.round(volumeLevel * 100) + '%';
     };
 
-    window.changeTone = function(val) { toneType = val; };
-
-    function triggerLoudAlarm() {
+    function soundLoudSiren() {
       if (!audioCtx || volumeLevel === 0) return;
       const osc = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
       osc.type = 'sawtooth';
-
-      if (toneType === 'pulse') {
-        osc.frequency.setValueAtTime(800, audioCtx.currentTime);
-        gain.gain.setValueAtTime(volumeLevel * 0.6, audioCtx.currentTime);
-      } else {
-        osc.frequency.setValueAtTime(950, audioCtx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(320, audioCtx.currentTime + 0.25);
-        gain.gain.setValueAtTime(volumeLevel * 0.6, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.25);
-      }
-
+      osc.frequency.setValueAtTime(950, audioCtx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(320, audioCtx.currentTime + 0.22);
+      gain.gain.setValueAtTime(volumeLevel * 0.7, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.22);
       osc.connect(gain);
       gain.connect(audioCtx.destination);
       osc.start();
-      osc.stop(audioCtx.currentTime + 0.25);
+      osc.stop(audioCtx.currentTime + 0.22);
     }
 
-    window.testAlarmDemo = function() {
-      initAudioEngine();
-      triggerLoudAlarm();
-    };
-
-    window.updateSensitivity = function(val) {
-      if (val === 'high') { earThreshold = 0.20; frameTrigger = 6; }
-      else if (val === 'low') { earThreshold = 0.16; frameTrigger = 15; }
-      else { earThreshold = 0.18; frameTrigger = 10; }
-    };
-
-    function appendAlertAudit(msg, lvl) {
-      totalAlerts++;
-      totalAlertsVal.innerText = totalAlerts;
-      alertCountBadge.innerText = totalAlerts;
-      const now = new Date();
-      const t = now.toTimeString().split(' ')[0];
-      const item = document.createElement('div');
-      item.className = 'log-item';
-      const clr = lvl === 'HIGH' ? 'var(--red)' : 'var(--yellow)';
-      item.innerHTML = `<span>${t} ${msg}</span><b style="color:${clr};">${lvl}</b>`;
-      logContainer.prepend(item);
-    }
+    sensSelect.addEventListener('change', (e) => {
+      if (e.target.value === 'high') { earThreshold = 0.20; frameTrigger = 6; }
+      else if (e.target.value === 'low') { earThreshold = 0.16; frameTrigger = 14; }
+      else { earThreshold = 0.18; frameTrigger = 8; }
+    });
 
     function dist(p1, p2) { return Math.hypot(p1.x - p2.x, p1.y - p2.y); }
 
@@ -341,11 +237,8 @@
       if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
         const lm = results.multiFaceLandmarks[0];
         const ear = getEAR(lm);
-
         earVal.innerText = ear.toFixed(2);
-        statEar.innerText = ear.toFixed(2);
 
-        // Face Box Calculation
         let minX = 1, maxX = 0, minY = 1, maxY = 0;
         lm.forEach(p => {
           if (p.x < minX) minX = p.x;
@@ -357,9 +250,8 @@
         const fx = minX * canvas.width, fy = minY * canvas.height;
         const fw = (maxX - minX) * canvas.width, fh = (maxY - minY) * canvas.height;
 
-        // Accurate Green Face & Eye Boxes
         ctx.strokeStyle = '#00ff66';
-        ctx.lineWidth = 1.6;
+        ctx.lineWidth = 1.8;
         ctx.strokeRect(fx - 6, fy - 10, fw + 12, fh + 16);
 
         const lx = lm[33].x * canvas.width, ly = lm[158].y * canvas.height;
@@ -370,26 +262,27 @@
         ctx.strokeRect(lx - 4, ly - 4, lw + 8, 22);
         ctx.strokeRect(rx - 4, ry - 4, rw + 8, 22);
 
-        // Responsive Drowsiness Reaction
         if (ear < earThreshold) {
           closedFrames++;
           eyeStateTxt.innerText = "⚠️ EYES CLOSED";
           eyeStateTxt.style.color = "var(--red)";
 
-          const dScore = Math.min(96, 30 + (closedFrames * 6));
+          const dScore = Math.min(98, 35 + (closedFrames * 7));
           scoreVal.innerText = dScore + "/100";
           scoreVal.style.color = "var(--red)";
-          updateGraph(dScore);
+          drawGraph(dScore);
 
           if (closedFrames > frameTrigger) {
             flashOverlay.classList.add('strobe');
-            triggerLoudAlarm();
+            soundLoudSiren();
 
             if (closedFrames === frameTrigger + 1) {
               drowsyEvents++;
+              totalAlerts++;
               drowsyEventsVal.innerText = drowsyEvents;
+              totalAlertsVal.innerText = totalAlerts;
+              alertCountBadge.innerText = totalAlerts;
               drowsyEventsVal.style.color = "var(--red)";
-              appendAlertAudit("Micro-sleep Detected", "HIGH");
             }
           }
         } else {
@@ -399,12 +292,12 @@
           eyeStateTxt.style.color = "var(--green)";
           scoreVal.innerText = "18/100";
           scoreVal.style.color = "var(--green)";
-          if (Math.random() > 0.8) updateGraph(Math.floor(16 + Math.random() * 5));
+          if (Math.random() > 0.8) drawGraph(Math.floor(16 + Math.random() * 5));
         }
       }
     });
 
-    async function launchCamera() {
+    async function launchApp() {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { width: 640, height: 480, facingMode: 'user' }
       });
@@ -420,13 +313,13 @@
         timerTxt.innerText = `${m}:${s}`;
       }, 1000);
 
-      async function run() {
+      async function loop() {
         if (isTracking) {
           await faceMesh.send({ image: video });
-          requestAnimationFrame(run);
+          requestAnimationFrame(loop);
         }
       }
-      run();
+      loop();
     }
 
     startBtn.addEventListener('click', () => {
@@ -434,11 +327,10 @@
       isTracking = !isTracking;
 
       if (isTracking) {
-        launchCamera();
+        launchApp();
         startBtn.innerText = "🛑 DISENGAGE TRACKING";
         startBtn.style.borderColor = "var(--red)";
         startBtn.style.color = "var(--red)";
-        appendAlertAudit("Tracking Online", "LOW");
       } else {
         if (video.srcObject) video.srcObject.getTracks().forEach(t => t.stop());
         clearInterval(timerInterval);
