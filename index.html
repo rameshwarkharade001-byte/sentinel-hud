@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>SENTINEL-X9 PRO // APEX NEURAL HUD</title>
+  <title>SENTINEL-X9 PRO // APEX IRIS HUD</title>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -206,7 +206,6 @@
     let customAudioActive = false;
     let hudRotation = 0;
 
-    // Custom Audio Engine
     customAudioInput.addEventListener('change', function(e) {
       const file = e.target.files[0];
       if (file) {
@@ -217,7 +216,6 @@
       }
     });
 
-    // 24 RPM Segments
     const rpmStrip = document.getElementById('rpmStrip');
     for (let i = 0; i < 24; i++) {
       const bar = document.createElement('div');
@@ -262,14 +260,14 @@
       const osc = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
       osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(940, audioCtx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(320, audioCtx.currentTime + 0.25);
-      gain.gain.setValueAtTime(0.35, audioCtx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.25);
+      osc.frequency.setValueAtTime(960, audioCtx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(320, audioCtx.currentTime + 0.22);
+      gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.22);
       osc.connect(gain);
       gain.connect(audioCtx.destination);
       osc.start();
-      osc.stop(audioCtx.currentTime + 0.25);
+      osc.stop(audioCtx.currentTime + 0.22);
     }
 
     function distance(p1, p2) {
@@ -296,33 +294,33 @@
       return v / h;
     }
 
-    // High-End Cyberpunk Hologram Retina Drawer
-    function drawHoloEyeTarget(ctx, cx, cy, isAlert, earVal, label) {
+    // Pinpoint Iris Reticle
+    function drawIrisReticle(ctx, cx, cy, isAlert, earVal, eyeTag) {
       ctx.save();
       const color = isAlert ? '#ff003c' : '#00f2fe';
-      const dimColor = isAlert ? 'rgba(255,0,60,0.4)' : 'rgba(0,242,254,0.35)';
+      const dimColor = isAlert ? 'rgba(255, 0, 60, 0.45)' : 'rgba(0, 242, 254, 0.35)';
 
       ctx.translate(cx, cy);
 
-      // Rotating Radar Dial (Outer)
+      // Rotating Outer Iris Ring
       ctx.save();
       ctx.rotate(hudRotation);
       ctx.strokeStyle = color;
       ctx.lineWidth = 1.8;
-      ctx.setLineDash([12, 6]);
+      ctx.setLineDash([10, 5]);
       ctx.beginPath();
-      ctx.arc(0, 0, 32, 0, Math.PI * 2);
+      ctx.arc(0, 0, 26, 0, Math.PI * 2);
       ctx.stroke();
       ctx.restore();
 
-      // Counter Rotating Hex (Inner)
+      // Counter-rotating Inner Hex Ring
       ctx.save();
       ctx.rotate(-hudRotation * 1.6);
       ctx.strokeStyle = dimColor;
       ctx.lineWidth = 1.2;
-      ctx.setLineDash([4, 6]);
+      ctx.setLineDash([3, 5]);
       ctx.beginPath();
-      ctx.arc(0, 0, 22, 0, Math.PI * 2);
+      ctx.arc(0, 0, 18, 0, Math.PI * 2);
       ctx.stroke();
       ctx.restore();
 
@@ -330,51 +328,30 @@
       ctx.strokeStyle = color;
       ctx.lineWidth = 2;
       ctx.setLineDash([]);
-      const s = 36, b = 9;
-      // Top Left
+      const s = 30, b = 8;
       ctx.beginPath(); ctx.moveTo(-s, -s + b); ctx.lineTo(-s, -s); ctx.lineTo(-s + b, -s); ctx.stroke();
-      // Top Right
       ctx.beginPath(); ctx.moveTo(s - b, -s); ctx.lineTo(s, -s); ctx.lineTo(s, -s + b); ctx.stroke();
-      // Bottom Left
       ctx.beginPath(); ctx.moveTo(-s, s - b); ctx.lineTo(-s, s); ctx.lineTo(-s + b, s); ctx.stroke();
-      // Bottom Right
       ctx.beginPath(); ctx.moveTo(s - b, s); ctx.lineTo(s, s); ctx.lineTo(s, s - b); ctx.stroke();
 
-      // Center Precision Laser Dot
+      // Center Iris Pinpoint Dot
       ctx.fillStyle = color;
       ctx.beginPath();
-      ctx.arc(0, 0, 3, 0, Math.PI * 2);
+      ctx.arc(0, 0, 2.5, 0, Math.PI * 2);
       ctx.fill();
 
-      // Floating Tech Readout Label
+      // Mini Telemetry Label
       ctx.font = '8px "Courier New", monospace';
       ctx.fillStyle = color;
-      ctx.fillText(label + " // " + earVal.toFixed(2), -34, -40);
+      ctx.fillText(eyeTag + " [" + earVal.toFixed(2) + "]", -28, -34);
 
-      ctx.restore();
-    }
-
-    // Precise Eyelid Laser Path
-    function drawEyelidLaser(ctx, lm, indices, isAlert) {
-      ctx.save();
-      ctx.strokeStyle = isAlert ? 'rgba(255, 0, 60, 0.8)' : 'rgba(0, 242, 254, 0.75)';
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      indices.forEach((idx, i) => {
-        const pt = lm[idx];
-        const x = pt.x * canvas.width;
-        const y = pt.y * canvas.height;
-        if (i === 0) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
-      });
-      ctx.closePath();
-      ctx.stroke();
       ctx.restore();
     }
 
     const faceMesh = new FaceMesh({
       locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
     });
+    // refineLandmarks: true ensures iris landmark 468 & 473 are active
     faceMesh.setOptions({ maxNumFaces: 1, refineLandmarks: true, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5 });
 
     faceMesh.onResults((results) => {
@@ -386,7 +363,7 @@
       ctx.save();
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      hudRotation += 0.045;
+      hudRotation += 0.05;
 
       if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
         const landmarks = results.multiFaceLandmarks[0];
@@ -397,28 +374,28 @@
         document.getElementById('speedVal').innerText = Math.floor(75 + Math.sin(now/1000) * 8);
         updateRpm(Math.min(1, ear * 3.5));
 
-        // Precision Eyelid Indices
-        const leftEyeIndices = [33, 160, 158, 133, 153, 144];
-        const rightEyeIndices = [362, 385, 387, 263, 373, 380];
+        // Exact Iris Coordinates: Point 468 (Left) & 473 (Right)
+        let lx, ly, rx, ry;
+        if (landmarks[468] && landmarks[473]) {
+          lx = landmarks[468].x * canvas.width;
+          ly = landmarks[468].y * canvas.height;
+          rx = landmarks[473].x * canvas.width;
+          ry = landmarks[473].y * canvas.height;
+        } else {
+          lx = ((landmarks[33].x + landmarks[133].x) / 2) * canvas.width;
+          ly = ((landmarks[158].y + landmarks[153].y) / 2) * canvas.height;
+          rx = ((landmarks[362].x + landmarks[263].x) / 2) * canvas.width;
+          ry = ((landmarks[387].y + landmarks[373].y) / 2) * canvas.height;
+        }
 
-        // Eye Closure Calibration
-        const isEyeClosed = ear < 0.17;
+        // True Eye Closure Threshold
+        const isEyeClosed = ear < 0.18;
 
-        // Draw Contour Lasers around real eye shape
-        drawEyelidLaser(ctx, landmarks, leftEyeIndices, isEyeClosed);
-        drawEyelidLaser(ctx, landmarks, rightEyeIndices, isEyeClosed);
+        // Draw Pinpoint Reticles exactly on Iris
+        drawIrisReticle(ctx, lx, ly, isEyeClosed, ear, "L-IRIS");
+        drawIrisReticle(ctx, rx, ry, isEyeClosed, ear, "R-IRIS");
 
-        // Center coordinates
-        const lx = ((landmarks[33].x + landmarks[133].x) / 2) * canvas.width;
-        const ly = ((landmarks[158].y + landmarks[153].y) / 2) * canvas.height;
-        const rx = ((landmarks[362].x + landmarks[263].x) / 2) * canvas.width;
-        const ry = ((landmarks[387].y + landmarks[373].y) / 2) * canvas.height;
-
-        // Draw 3D Sci-Fi Holographic Reticles
-        drawHoloEyeTarget(ctx, lx, ly, isEyeClosed, ear, "L-RETINA");
-        drawHoloEyeTarget(ctx, rx, ry, isEyeClosed, ear, "R-RETINA");
-
-        // Dynamic Connecting Laser Telemetry
+        // Iris Cross-laser line
         ctx.strokeStyle = isEyeClosed ? 'rgba(255, 0, 60, 0.7)' : 'rgba(0, 242, 254, 0.5)';
         ctx.lineWidth = 1;
         ctx.setLineDash([4, 4]);
@@ -428,16 +405,16 @@
         ctx.stroke();
         ctx.setLineDash([]);
 
-        // Micro-sleep Interceptor: 20 Frames (~1.5s real sleep)
+        // Instant Sleep Alarm: 10 frames (~0.8 to 1.0s full closure)
         if (isEyeClosed) {
           closedEyeFrames++;
-          if (closedEyeFrames > 20) {
+          if (closedEyeFrames > 10) {
             flashOverlay.classList.add('strobe-active');
             startAlarm();
-            document.getElementById('sysState').innerText = "CRITICAL // SLEEP DETECTED";
+            document.getElementById('sysState').innerText = "CRITICAL // SLEEP INTERCEPT";
             document.getElementById('sysState').style.borderColor = "#ff003c";
             document.getElementById('sysState').style.color = "#ff003c";
-            document.getElementById('vigilanceScore').innerText = "DANGER";
+            document.getElementById('vigilanceScore').innerText = "ALERT!";
             document.getElementById('vigilanceScore').style.color = "#ff003c";
           }
         } else {
@@ -451,7 +428,7 @@
           document.getElementById('vigilanceScore').style.color = "#00ff66";
         }
 
-        // Yawn Logic
+        // Yawn Trigger
         if (mar > 0.68 && (now - lastYawnTime) > 3500) {
           yawns++;
           lastYawnTime = now;
