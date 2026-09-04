@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>SENTINEL-X9 PRO // APEX NEURAL HUD</title>
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -189,8 +188,7 @@
   </div>
 
   <audio id="customPlayer" loop></audio>
-
-  <script>
+    <script>
     const video = document.getElementById('webcam');
     const canvas = document.getElementById('telemetryCanvas');
     const ctx = canvas.getContext('2d');
@@ -206,16 +204,16 @@
     let yawns = 0, lastYawnTime = 0, closedEyeFrames = 0;
     let lastFrameTime = performance.now(), fps = 0;
     let customAudioActive = false;
-    let rotationAngle = 0;
+    let hudRotation = 0;
 
-    // Custom File Selector Logic
+    // Custom Audio Engine
     customAudioInput.addEventListener('change', function(e) {
       const file = e.target.files[0];
       if (file) {
         const fileURL = URL.createObjectURL(file);
         customPlayer.src = fileURL;
         customAudioActive = true;
-        alarmLabel.innerText = "ALARM: " + file.name.substring(0, 16) + "..";
+        alarmLabel.innerText = "ALARM: " + file.name.substring(0, 15) + "..";
       }
     });
 
@@ -264,8 +262,8 @@
       const osc = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
       osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(950, audioCtx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(350, audioCtx.currentTime + 0.25);
+      osc.frequency.setValueAtTime(940, audioCtx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(320, audioCtx.currentTime + 0.25);
       gain.gain.setValueAtTime(0.35, audioCtx.currentTime);
       gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.25);
       osc.connect(gain);
@@ -298,55 +296,79 @@
       return v / h;
     }
 
-    // Advanced Cyberpunk Target Drawing
-    function drawReticle(ctx, cx, cy, radius, isAlert) {
+    // High-End Cyberpunk Hologram Retina Drawer
+    function drawHoloEyeTarget(ctx, cx, cy, isAlert, earVal, label) {
       ctx.save();
       const color = isAlert ? '#ff003c' : '#00f2fe';
-      const secondaryColor = isAlert ? 'rgba(255, 0, 60, 0.4)' : 'rgba(0, 242, 254, 0.4)';
-      
+      const dimColor = isAlert ? 'rgba(255,0,60,0.4)' : 'rgba(0,242,254,0.35)';
+
       ctx.translate(cx, cy);
 
-      // Rotating Outer Dashed Ring
+      // Rotating Radar Dial (Outer)
       ctx.save();
-      ctx.rotate(rotationAngle);
+      ctx.rotate(hudRotation);
       ctx.strokeStyle = color;
-      ctx.lineWidth = 1.5;
-      ctx.setLineDash([8, 6]);
+      ctx.lineWidth = 1.8;
+      ctx.setLineDash([12, 6]);
       ctx.beginPath();
-      ctx.arc(0, 0, radius, 0, 2 * Math.PI);
+      ctx.arc(0, 0, 32, 0, Math.PI * 2);
       ctx.stroke();
       ctx.restore();
 
-      // Inner Counter-Rotating Ring
+      // Counter Rotating Hex (Inner)
       ctx.save();
-      ctx.rotate(-rotationAngle * 1.5);
-      ctx.strokeStyle = secondaryColor;
-      ctx.lineWidth = 1;
-      ctx.setLineDash([4, 8]);
+      ctx.rotate(-hudRotation * 1.6);
+      ctx.strokeStyle = dimColor;
+      ctx.lineWidth = 1.2;
+      ctx.setLineDash([4, 6]);
       ctx.beginPath();
-      ctx.arc(0, 0, radius - 6, 0, 2 * Math.PI);
+      ctx.arc(0, 0, 22, 0, Math.PI * 2);
       ctx.stroke();
       ctx.restore();
 
-      // Precision Crosshair
+      // Precision Corner Lock Brackets
       ctx.strokeStyle = color;
-      ctx.lineWidth = 1;
+      ctx.lineWidth = 2;
       ctx.setLineDash([]);
-      ctx.beginPath();
-      // Horizontal
-      ctx.moveTo(-radius - 4, 0); ctx.lineTo(-radius + 8, 0);
-      ctx.moveTo(radius + 4, 0); ctx.lineTo(radius - 8, 0);
-      // Vertical
-      ctx.moveTo(0, -radius - 4); ctx.lineTo(0, -radius + 8);
-      ctx.moveTo(0, radius + 4); ctx.lineTo(0, radius - 8);
-      ctx.stroke();
+      const s = 36, b = 9;
+      // Top Left
+      ctx.beginPath(); ctx.moveTo(-s, -s + b); ctx.lineTo(-s, -s); ctx.lineTo(-s + b, -s); ctx.stroke();
+      // Top Right
+      ctx.beginPath(); ctx.moveTo(s - b, -s); ctx.lineTo(s, -s); ctx.lineTo(s, -s + b); ctx.stroke();
+      // Bottom Left
+      ctx.beginPath(); ctx.moveTo(-s, s - b); ctx.lineTo(-s, s); ctx.lineTo(-s + b, s); ctx.stroke();
+      // Bottom Right
+      ctx.beginPath(); ctx.moveTo(s - b, s); ctx.lineTo(s, s); ctx.lineTo(s, s - b); ctx.stroke();
 
-      // Center Dot
+      // Center Precision Laser Dot
       ctx.fillStyle = color;
       ctx.beginPath();
-      ctx.arc(0, 0, 2.5, 0, Math.PI * 2);
+      ctx.arc(0, 0, 3, 0, Math.PI * 2);
       ctx.fill();
 
+      // Floating Tech Readout Label
+      ctx.font = '8px "Courier New", monospace';
+      ctx.fillStyle = color;
+      ctx.fillText(label + " // " + earVal.toFixed(2), -34, -40);
+
+      ctx.restore();
+    }
+
+    // Precise Eyelid Laser Path
+    function drawEyelidLaser(ctx, lm, indices, isAlert) {
+      ctx.save();
+      ctx.strokeStyle = isAlert ? 'rgba(255, 0, 60, 0.8)' : 'rgba(0, 242, 254, 0.75)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      indices.forEach((idx, i) => {
+        const pt = lm[idx];
+        const x = pt.x * canvas.width;
+        const y = pt.y * canvas.height;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.closePath();
+      ctx.stroke();
       ctx.restore();
     }
 
@@ -364,7 +386,7 @@
       ctx.save();
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      rotationAngle += 0.04;
+      hudRotation += 0.045;
 
       if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
         const landmarks = results.multiFaceLandmarks[0];
@@ -375,41 +397,47 @@
         document.getElementById('speedVal').innerText = Math.floor(75 + Math.sin(now/1000) * 8);
         updateRpm(Math.min(1, ear * 3.5));
 
-        // Eye coordinates
-        const leftEye = landmarks[133];
-        const rightEye = landmarks[362];
-        const lx = leftEye.x * canvas.width;
-        const ly = leftEye.y * canvas.height;
-        const rx = rightEye.x * canvas.width;
-        const ry = rightEye.y * canvas.height;
+        // Precision Eyelid Indices
+        const leftEyeIndices = [33, 160, 158, 133, 153, 144];
+        const rightEyeIndices = [362, 385, 387, 263, 373, 380];
 
-        // Corrected Threshold: EAR < 0.20 means fully closed eyes for mobile
-        const isEyeClosed = ear < 0.20;
+        // Eye Closure Calibration
+        const isEyeClosed = ear < 0.17;
 
-        // Draw Advanced Cyberpunk Reticles on both eyes
-        drawReticle(ctx, lx, ly, 25, isEyeClosed);
-        drawReticle(ctx, rx, ry, 25, isEyeClosed);
+        // Draw Contour Lasers around real eye shape
+        drawEyelidLaser(ctx, landmarks, leftEyeIndices, isEyeClosed);
+        drawEyelidLaser(ctx, landmarks, rightEyeIndices, isEyeClosed);
 
-        // Dynamic Connecting Laser Line
-        ctx.strokeStyle = isEyeClosed ? 'rgba(255, 0, 60, 0.6)' : 'rgba(0, 242, 254, 0.5)';
+        // Center coordinates
+        const lx = ((landmarks[33].x + landmarks[133].x) / 2) * canvas.width;
+        const ly = ((landmarks[158].y + landmarks[153].y) / 2) * canvas.height;
+        const rx = ((landmarks[362].x + landmarks[263].x) / 2) * canvas.width;
+        const ry = ((landmarks[387].y + landmarks[373].y) / 2) * canvas.height;
+
+        // Draw 3D Sci-Fi Holographic Reticles
+        drawHoloEyeTarget(ctx, lx, ly, isEyeClosed, ear, "L-RETINA");
+        drawHoloEyeTarget(ctx, rx, ry, isEyeClosed, ear, "R-RETINA");
+
+        // Dynamic Connecting Laser Telemetry
+        ctx.strokeStyle = isEyeClosed ? 'rgba(255, 0, 60, 0.7)' : 'rgba(0, 242, 254, 0.5)';
         ctx.lineWidth = 1;
-        ctx.setLineDash([5, 5]);
+        ctx.setLineDash([4, 4]);
         ctx.beginPath();
         ctx.moveTo(lx, ly);
         ctx.lineTo(rx, ry);
         ctx.stroke();
         ctx.setLineDash([]);
 
-        // Continuous Eye Closure Filter: 12 frames (~1.0s)
+        // Micro-sleep Interceptor: 20 Frames (~1.5s real sleep)
         if (isEyeClosed) {
           closedEyeFrames++;
-          if (closedEyeFrames > 12) {
+          if (closedEyeFrames > 20) {
             flashOverlay.classList.add('strobe-active');
             startAlarm();
-            document.getElementById('sysState').innerText = "CRITICAL // SLEEP INTERCEPT";
+            document.getElementById('sysState').innerText = "CRITICAL // SLEEP DETECTED";
             document.getElementById('sysState').style.borderColor = "#ff003c";
             document.getElementById('sysState').style.color = "#ff003c";
-            document.getElementById('vigilanceScore').innerText = "ALERT!";
+            document.getElementById('vigilanceScore').innerText = "DANGER";
             document.getElementById('vigilanceScore').style.color = "#ff003c";
           }
         } else {
@@ -419,11 +447,12 @@
           document.getElementById('sysState').innerText = "TRACKING // OPTIMAL";
           document.getElementById('sysState').style.borderColor = "#00ff66";
           document.getElementById('sysState').style.color = "#00ff66";
-          document.getElementById('vigilanceScore').innerText = "98%";
+          document.getElementById('vigilanceScore').innerText = "99%";
           document.getElementById('vigilanceScore').style.color = "#00ff66";
         }
 
-        if (mar > 0.65 && (now - lastYawnTime) > 3500) {
+        // Yawn Logic
+        if (mar > 0.68 && (now - lastYawnTime) > 3500) {
           yawns++;
           lastYawnTime = now;
           document.getElementById('yawnCount').innerText = yawns;
@@ -433,7 +462,7 @@
         document.getElementById('sysState').innerText = "TARGET LOST // SEARCHING";
         document.getElementById('sysState').style.borderColor = "#ffb703";
         document.getElementById('sysState').style.color = "#ffb703";
-        updateRpm(0.1);
+        updateRpm(0.08);
       }
       ctx.restore();
     });
