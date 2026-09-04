@@ -3,21 +3,21 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>SENTINEL-X9 // APEX AUTONOMOUS HUD</title>
+  <title>SENTINEL-X9 // APEX NEURAL HUD</title>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     :root {
-      --neon-blue: #00f2fe;
+      --neon-cyan: #00f2fe;
       --neon-red: #ff003c;
       --neon-green: #00ff66;
-      --neon-yellow: #ffb703;
-      --panel-bg: rgba(4, 9, 22, 0.85);
+      --neon-gold: #ffb703;
+      --panel-bg: rgba(6, 12, 28, 0.88);
     }
     body {
-      background: radial-gradient(circle at center, #060d20 0%, #010307 100%);
-      color: var(--neon-blue);
-      font-family: 'Courier New', Courier, monospace;
+      background: radial-gradient(circle at 50% 20%, #0c1836 0%, #02050e 100%);
+      color: var(--neon-cyan);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Courier New", monospace;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -35,19 +35,19 @@
 
     .hud-topbar {
       width: 100%; max-width: 480px; display: flex; justify-content: space-between;
-      align-items: center; padding: 8px 14px;
-      background: var(--panel-bg); border: 1px solid rgba(0, 242, 254, 0.4);
-      border-radius: 8px; backdrop-filter: blur(10px); margin-bottom: 6px;
-      box-shadow: 0 0 15px rgba(0, 242, 254, 0.15);
+      align-items: center; padding: 10px 14px;
+      background: var(--panel-bg); border: 1px solid rgba(0, 242, 254, 0.45);
+      border-radius: 10px; backdrop-filter: blur(12px); margin-bottom: 6px;
+      box-shadow: 0 0 20px rgba(0, 242, 254, 0.2);
     }
-    .hud-title { font-size: 15px; font-weight: 900; letter-spacing: 3px; text-shadow: 0 0 10px var(--neon-blue); }
-    .hud-status-badge { font-size: 11px; padding: 3px 8px; border-radius: 4px; border: 1px solid var(--neon-green); color: var(--neon-green); font-weight: bold; }
+    .hud-title { font-size: 15px; font-weight: 900; letter-spacing: 3px; text-shadow: 0 0 12px var(--neon-cyan); }
+    .hud-status-badge { font-size: 11px; padding: 3px 8px; border-radius: 4px; border: 1px solid var(--neon-green); color: var(--neon-green); font-weight: bold; letter-spacing: 1px; }
 
     .viewport-box {
       position: relative; width: 100%; max-width: 480px; height: 420px;
-      border-radius: 12px; overflow: hidden; background: #000;
-      border: 2px solid var(--neon-blue);
-      box-shadow: 0 0 30px rgba(0, 242, 254, 0.2);
+      border-radius: 14px; overflow: hidden; background: #000;
+      border: 2px solid var(--neon-cyan);
+      box-shadow: 0 0 30px rgba(0, 242, 254, 0.25);
     }
     video, canvas {
       position: absolute; top: 0; left: 0; width: 100%; height: 100%;
@@ -59,8 +59,8 @@
 
     .scanner-beam {
       position: absolute; width: 100%; height: 2px;
-      background: linear-gradient(90deg, transparent, var(--neon-blue), transparent);
-      box-shadow: 0 0 12px var(--neon-blue);
+      background: linear-gradient(90deg, transparent, var(--neon-cyan), transparent);
+      box-shadow: 0 0 14px var(--neon-cyan);
       animation: scanAnim 2.2s infinite linear; pointer-events: none;
     }
     @keyframes scanAnim {
@@ -76,7 +76,7 @@
     }
     .rpm-bar { height: 100%; flex: 1; background: rgba(0, 242, 254, 0.12); border-radius: 1px; }
     .rpm-bar.active { background: var(--neon-green); box-shadow: 0 0 6px var(--neon-green); }
-    .rpm-bar.warning { background: var(--neon-yellow); box-shadow: 0 0 6px var(--neon-yellow); }
+    .rpm-bar.warning { background: var(--neon-gold); box-shadow: 0 0 6px var(--neon-gold); }
     .rpm-bar.danger { background: var(--neon-red); box-shadow: 0 0 6px var(--neon-red); }
 
     .cluster-grid {
@@ -88,20 +88,20 @@
       padding: 8px 6px; border-radius: 8px; text-align: center;
       backdrop-filter: blur(8px);
     }
-    .cluster-val { font-size: 17px; font-weight: 900; color: #fff; text-shadow: 0 0 8px var(--neon-blue); }
+    .cluster-val { font-size: 17px; font-weight: 900; color: #fff; text-shadow: 0 0 8px var(--neon-cyan); }
     .cluster-lbl { font-size: 9px; opacity: 0.75; letter-spacing: 1px; margin-top: 2px; }
 
     .audio-config-bar {
       width: 100%; max-width: 480px; margin-top: 6px;
-      background: var(--panel-bg); border: 1px dashed rgba(0, 242, 254, 0.35);
+      background: var(--panel-bg); border: 1px dashed rgba(0, 242, 254, 0.4);
       border-radius: 8px; padding: 8px 12px; display: flex;
       justify-content: space-between; align-items: center;
     }
     .audio-config-text { font-size: 11px; letter-spacing: 1px; color: #fff; }
     .custom-file-btn {
-      padding: 5px 10px; font-size: 10px; font-weight: bold;
-      background: rgba(0, 242, 254, 0.15); border: 1px solid var(--neon-blue);
-      color: var(--neon-blue); border-radius: 4px; cursor: pointer;
+      padding: 6px 12px; font-size: 10px; font-weight: bold;
+      background: rgba(0, 242, 254, 0.15); border: 1px solid var(--neon-cyan);
+      color: var(--neon-cyan); border-radius: 4px; cursor: pointer;
     }
 
     .btn-row {
@@ -109,18 +109,18 @@
     }
     .tactical-btn {
       flex: 1; padding: 12px; background: rgba(0, 242, 254, 0.08);
-      border: 1px solid var(--neon-blue); color: var(--neon-blue);
+      border: 1px solid var(--neon-cyan); color: var(--neon-cyan);
       font-weight: 900; font-size: 12px; letter-spacing: 2px;
       border-radius: 6px; cursor: pointer; transition: 0.2s;
     }
-    .tactical-btn:active { background: var(--neon-blue); color: #000; }
+    .tactical-btn:active { background: var(--neon-cyan); color: #000; }
     .btn-nv { border-color: var(--neon-green); color: var(--neon-green); }
 
     .credit-tag {
       margin-top: 10px; font-size: 10px; letter-spacing: 2px;
       color: rgba(255, 255, 255, 0.6);
     }
-    .credit-tag span { color: var(--neon-blue); font-weight: bold; }
+    .credit-tag span { color: var(--neon-cyan); font-weight: bold; }
   </style>
 </head>
 <body>
@@ -128,7 +128,7 @@
   <div id="flashOverlay"></div>
 
   <div class="hud-topbar">
-    <div class="hud-title">SENTINEL-X9</div>
+    <div class="hud-title">SENTINEL-X9 PRO</div>
     <div class="hud-status-badge" id="sysState">ONLINE // STANDBY</div>
   </div>
 
@@ -146,7 +146,7 @@
       <div class="cluster-lbl">VELOCITY (KM/H)</div>
     </div>
     <div class="cluster-card">
-      <div class="cluster-val" id="gearVal" style="color:var(--neon-yellow);">DRIVE [D]</div>
+      <div class="cluster-val" id="gearVal" style="color:var(--neon-gold);">DRIVE [D]</div>
       <div class="cluster-lbl">TRANSMISSION</div>
     </div>
     <div class="cluster-card">
@@ -187,7 +187,8 @@
     LEAD ARCHITECT: <span>RAMESHWAR KHARADE</span>
   </div>
 
-  <audio id="customPlayer" loop></audio><script>
+  <audio id="customPlayer" loop></audio>
+    <script>
     const video = document.getElementById('webcam');
     const canvas = document.getElementById('telemetryCanvas');
     const ctx = canvas.getContext('2d');
@@ -203,16 +204,16 @@
     let yawns = 0, lastYawnTime = 0, closedEyeFrames = 0;
     let lastFrameTime = performance.now(), fps = 0;
     let customAudioActive = false;
-    let rotationAngle = 0;
+    let hudAngle = 0;
 
-    // Custom File Selector Logic
+    // Custom Audio Selector
     customAudioInput.addEventListener('change', function(e) {
       const file = e.target.files[0];
       if (file) {
         const fileURL = URL.createObjectURL(file);
         customPlayer.src = fileURL;
         customAudioActive = true;
-        alarmLabel.innerText = "ALARM: " + file.name.substring(0, 16) + "..";
+        alarmLabel.innerText = "ALARM: " + file.name.substring(0, 15) + "..";
       }
     });
 
@@ -261,8 +262,8 @@
       const osc = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
       osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(950, audioCtx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(350, audioCtx.currentTime + 0.25);
+      osc.frequency.setValueAtTime(920, audioCtx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(320, audioCtx.currentTime + 0.25);
       gain.gain.setValueAtTime(0.35, audioCtx.currentTime);
       gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.25);
       osc.connect(gain);
@@ -295,58 +296,75 @@
       return v / h;
     }
 
-    // High-Tech Cyberpunk Ocular Reticle
-    function drawCyberReticle(ctx, cx, cy, isAlert) {
+    // 3D Holographic Eye Reticle
+    function drawHoloReticle(ctx, cx, cy, isAlert) {
       ctx.save();
-      const primaryColor = isAlert ? '#ff003c' : '#00f2fe';
-      const secondaryColor = isAlert ? 'rgba(255, 0, 60, 0.4)' : 'rgba(0, 242, 254, 0.4)';
-
+      const col = isAlert ? '#ff003c' : '#00f2fe';
       ctx.translate(cx, cy);
 
-      // Rotating Outer Dashed Ring
+      // Outer Rotating Segmented HUD
       ctx.save();
-      ctx.rotate(rotationAngle);
-      ctx.strokeStyle = primaryColor;
-      ctx.lineWidth = 1.5;
-      ctx.setLineDash([8, 6]);
+      ctx.rotate(hudAngle);
+      ctx.strokeStyle = col;
+      ctx.lineWidth = 2;
+      ctx.setLineDash([12, 8]);
       ctx.beginPath();
-      ctx.arc(0, 0, 30, 0, Math.PI * 2);
+      ctx.arc(0, 0, 32, 0, Math.PI * 2);
       ctx.stroke();
       ctx.restore();
 
-      // Counter-rotating Inner Hex Ring
+      // Inner Counter-Rotating Hex
       ctx.save();
-      ctx.rotate(-rotationAngle * 1.5);
-      ctx.strokeStyle = secondaryColor;
-      ctx.lineWidth = 1;
-      ctx.setLineDash([4, 8]);
+      ctx.rotate(-hudAngle * 1.6);
+      ctx.strokeStyle = isAlert ? 'rgba(255,0,60,0.5)' : 'rgba(0,242,254,0.5)';
+      ctx.lineWidth = 1.2;
+      ctx.setLineDash([4, 6]);
       ctx.beginPath();
-      ctx.arc(0, 0, 22, 0, Math.PI * 2);
+      ctx.arc(0, 0, 20, 0, Math.PI * 2);
       ctx.stroke();
       ctx.restore();
 
-      // Target Lock Brackets (4 Corners)
-      ctx.strokeStyle = primaryColor;
+      // Cyberpunk Target Brackets
+      ctx.strokeStyle = col;
       ctx.lineWidth = 2;
       ctx.setLineDash([]);
-      const s = 36;
-      const b = 8;
-      // Top-Left
+      const s = 38, b = 10;
       ctx.beginPath(); ctx.moveTo(-s, -s + b); ctx.lineTo(-s, -s); ctx.lineTo(-s + b, -s); ctx.stroke();
-      // Top-Right
       ctx.beginPath(); ctx.moveTo(s - b, -s); ctx.lineTo(s, -s); ctx.lineTo(s, -s + b); ctx.stroke();
-      // Bottom-Left
-      ctx.beginPath(); ctx.moveTo(-s, -s + b); ctx.lineTo(-s, s); ctx.lineTo(-s + b, s); ctx.stroke();
-      // Bottom-Right
+      ctx.beginPath(); ctx.moveTo(-s, s - b); ctx.lineTo(-s, s); ctx.lineTo(-s + b, s); ctx.stroke();
       ctx.beginPath(); ctx.moveTo(s - b, s); ctx.lineTo(s, s); ctx.lineTo(s, s - b); ctx.stroke();
 
-      // Center Precision Dot
-      ctx.fillStyle = primaryColor;
+      // Center Laser Core
+      ctx.fillStyle = col;
       ctx.beginPath();
-      ctx.arc(0, 0, 2.5, 0, Math.PI * 2);
+      ctx.arc(0, 0, 3, 0, Math.PI * 2);
       ctx.fill();
 
       ctx.restore();
+    }
+
+    // 3D Face Wireframe Connectors
+    function drawFacialMesh(ctx, landmarks, isAlert) {
+      const meshColor = isAlert ? 'rgba(255, 0, 60, 0.45)' : 'rgba(0, 242, 254, 0.35)';
+      ctx.strokeStyle = meshColor;
+      ctx.lineWidth = 1;
+
+      const pathIndices = [
+        [10, 338, 297, 332, 284, 251, 389, 356, 454, 323, 361, 288, 397, 365, 379, 378, 400, 377, 152, 148, 176, 149, 150, 136, 172, 58, 132, 93, 234, 127, 162, 21, 54, 103, 67, 109, 10], // Jawline & Face Oval
+        [168, 6, 197, 195, 5, 4, 1, 19, 94, 2] // Nose Bridge
+      ];
+
+      pathIndices.forEach(path => {
+        ctx.beginPath();
+        path.forEach((idx, i) => {
+          const pt = landmarks[idx];
+          const x = pt.x * canvas.width;
+          const y = pt.y * canvas.height;
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+      });
     }
 
     const faceMesh = new FaceMesh({
@@ -363,7 +381,7 @@
       ctx.save();
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      rotationAngle += 0.04;
+      hudAngle += 0.05;
 
       if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
         const landmarks = results.multiFaceLandmarks[0];
@@ -371,38 +389,37 @@
         const mar = getMAR(landmarks);
 
         document.getElementById('earVal').innerText = ear.toFixed(2);
-        document.getElementById('speedVal').innerText = Math.floor(74 + Math.sin(now/1000) * 6);
-        updateRpm(Math.min(1, ear * 3.5));
+        document.getElementById('speedVal').innerText = Math.floor(75 + Math.sin(now/1000) * 7);
+        updateRpm(Math.min(1, ear * 3.6));
 
-        // Eye coordinates
-        const leftEye = landmarks[133];
-        const rightEye = landmarks[362];
-        const lx = leftEye.x * canvas.width;
-        const ly = leftEye.y * canvas.height;
-        const rx = rightEye.x * canvas.width;
-        const ry = rightEye.y * canvas.height;
+        // Precision Calibration: EAR < 0.16 indicates full closure
+        const isEyeClosed = ear < 0.16;
 
-        // Calibrated Threshold: EAR < 0.17 means fully closed eyes
-        const isEyeClosed = ear < 0.17;
+        // Draw 3D Sci-Fi Face Wireframe
+        drawFacialMesh(ctx, landmarks, isEyeClosed);
 
-        // Draw Advanced Cyberpunk Reticles on both eyes
-        drawCyberReticle(ctx, lx, ly, isEyeClosed);
-        drawCyberReticle(ctx, rx, ry, isEyeClosed);
+        // Center points for eyes
+        const lx = landmarks[133].x * canvas.width;
+        const ly = landmarks[133].y * canvas.height;
+        const rx = landmarks[362].x * canvas.width;
+        const ry = landmarks[362].y * canvas.height;
 
-        // Dynamic Connecting Laser Line
-        ctx.strokeStyle = isEyeClosed ? 'rgba(255, 0, 60, 0.6)' : 'rgba(0, 242, 254, 0.5)';
+        // Draw Advanced Holographic HUD Reticles
+        drawHoloReticle(ctx, lx, ly, isEyeClosed);
+        drawHoloReticle(ctx, rx, ry, isEyeClosed);
+
+        // Telemetry Laser Line
+        ctx.strokeStyle = isEyeClosed ? 'rgba(255, 0, 60, 0.7)' : 'rgba(0, 242, 254, 0.6)';
         ctx.lineWidth = 1.2;
-        ctx.setLineDash([5, 5]);
         ctx.beginPath();
         ctx.moveTo(lx, ly);
         ctx.lineTo(rx, ry);
         ctx.stroke();
-        ctx.setLineDash([]);
 
-        // Continuous Eye Closure Filter: 25 frames (~1.5 to 2 seconds)
+        // 30 Frames Threshold (~1.8 - 2.0 Seconds of genuine sleep)
         if (isEyeClosed) {
           closedEyeFrames++;
-          if (closedEyeFrames > 25) {
+          if (closedEyeFrames > 30) {
             flashOverlay.classList.add('strobe-active');
             startAlarm();
             document.getElementById('sysState').innerText = "CRITICAL // SLEEP DETECTED";
@@ -422,8 +439,8 @@
           document.getElementById('vigilanceScore').style.color = "#00ff66";
         }
 
-        // Yawn Logic (MAR > 0.68)
-        if (mar > 0.68 && (now - lastYawnTime) > 4000) {
+        // Yawn Trigger
+        if (mar > 0.70 && (now - lastYawnTime) > 4000) {
           yawns++;
           lastYawnTime = now;
           document.getElementById('yawnCount').innerText = yawns;
@@ -480,3 +497,4 @@
   </script>
 </body>
 </html>
+
