@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>SENTINEL-X9 PRO // AUTONOMOUS AI</title>
+  <title>SENTINEL-X9 PRO // ENTERPRISE EDGE-AI</title>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace; }
@@ -22,19 +22,15 @@
     .topbar { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px; }
     .brand { font-size: 15px; font-weight: 900; letter-spacing: 2px; color: #fff; }
     .brand span { color: var(--cyan); }
-    .sys-badge { background: rgba(0,255,102,0.15); border: 1px solid var(--green); color: var(--green); padding: 3px 10px; border-radius: 12px; font-size: 10px; font-weight: bold; }
+    .deal-btn-top { background: rgba(255, 183, 3, 0.15); border: 1px solid var(--yellow); color: var(--yellow); padding: 4px 10px; border-radius: 6px; font-size: 10px; font-weight: 800; cursor: pointer; text-decoration: none; }
 
-    .tab-bar { display: flex; gap: 6px; margin-bottom: 8px; }
-    .tab-btn { flex: 1; padding: 8px 4px; background: var(--card); border: 1px solid var(--border); border-radius: 6px; font-size: 11px; font-weight: bold; color: #8ba9c9; cursor: pointer; text-align: center; }
-    .tab-btn.active { background: rgba(0,242,254,0.18); border-color: var(--cyan); color: #fff; }
-
-    .cam-box { position: relative; width: 100%; height: 280px; background: #000; border: 2px solid var(--cyan); border-radius: 10px; overflow: hidden; margin-bottom: 8px; }
+    .cam-box { position: relative; width: 100%; height: 285px; background: #000; border: 2px solid var(--cyan); border-radius: 10px; overflow: hidden; margin-bottom: 8px; }
     #webcam { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
     #canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); pointer-events: none; }
-    .cam-meta-top { position: absolute; top: 6px; left: 8px; right: 8px; display: flex; justify-content: space-between; font-size: 10px; font-weight: bold; color: var(--green); pointer-events: none; z-index: 2; }
+    .cam-meta-top { position: absolute; top: 6px; left: 8px; right: 8px; display: flex; justify-content: space-between; font-size: 10px; font-weight: bold; color: var(--green); z-index: 2; }
     .cam-meta-bot { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(2,8,19,0.92); border-top: 1px solid var(--border); padding: 6px 10px; display: flex; justify-content: space-between; font-size: 11px; z-index: 2; }
 
-    .metric-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-bottom: 8px; }
+    .metric-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 8px; }
     .m-card { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 8px 4px; text-align: center; }
     .m-val { font-size: 16px; font-weight: 900; color: #fff; }
     .m-lbl { font-size: 8px; opacity: 0.7; letter-spacing: 0.5px; margin-top: 2px; }
@@ -46,9 +42,18 @@
     .graph-title { font-size: 10px; font-weight: bold; letter-spacing: 1px; margin-bottom: 4px; color: var(--cyan); }
     #graphCanvas { display: block; width: 100%; height: 60px; background: rgba(0,0,0,0.5); border-radius: 4px; border: 1px solid rgba(0,242,254,0.15); }
 
-    .btn-row { display: flex; gap: 6px; margin-top: 4px; }
+    .btn-row { display: flex; gap: 6px; margin-bottom: 8px; }
     .main-btn { flex: 2; padding: 14px; background: rgba(0,242,254,0.15); border: 2px solid var(--cyan); border-radius: 8px; color: var(--cyan); font-size: 13px; font-weight: 900; letter-spacing: 1px; cursor: pointer; }
     .opt-sel { flex: 1; padding: 12px 4px; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; color: var(--cyan); font-size: 11px; font-weight: bold; outline: none; }
+
+    /* ACQUISITION BANNER */
+    .acquire-card { background: rgba(255, 183, 3, 0.08); border: 1px dashed var(--yellow); border-radius: 8px; padding: 12px; text-align: center; }
+    .acquire-head { font-size: 12px; font-weight: 900; color: var(--yellow); letter-spacing: 1px; margin-bottom: 4px; }
+    .acquire-sub { font-size: 10px; color: #a4c4e2; margin-bottom: 8px; line-height: 1.4; }
+    .contact-actions { display: flex; gap: 8px; justify-content: center; }
+    .contact-btn { padding: 8px 14px; border-radius: 6px; font-size: 11px; font-weight: bold; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; }
+    .btn-mail { background: var(--cyan); color: #000; }
+    .btn-wa { background: #25d366; color: #000; }
 
     #flashOverlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: var(--red); opacity: 0; pointer-events: none; z-index: 999; }
     .strobe { opacity: 0.85 !important; }
@@ -59,21 +64,15 @@
 
   <header class="topbar">
     <div class="brand">SENTINEL-X9 <span>PRO</span></div>
-    <div class="sys-badge" id="badgeStatus">● ACTIVE 2.0</div>
+    <a href="#acquireSec" class="deal-btn-top">💼 ACQUIRE TECH</a>
   </header>
-
-  <nav class="tab-bar">
-    <button class="tab-btn active" id="tab1">📊 DASHBOARD</button>
-    <button class="tab-btn" id="tab2">📈 STATISTICS</button>
-    <button class="tab-btn" id="tab3">🔔 ALERTS (<span id="alertCountBadge">0</span>)</button>
-  </nav>
 
   <div class="cam-box">
     <video id="webcam" playsinline autoplay muted></video>
     <canvas id="canvas"></canvas>
     <div class="cam-meta-top">
       <span>● LIVE AI FEED</span>
-      <span>CAM: FRONT HD</span>
+      <span id="headStatusTxt">HEAD: CENTERED</span>
     </div>
     <div class="cam-meta-bot">
       <span id="eyeStateTxt" style="color:var(--green); font-weight:bold;">👁️ EYES OPEN</span>
@@ -99,7 +98,7 @@
 
   <div class="alarm-box">
     <div>
-      <div style="font-size:11px; font-weight:bold; color:var(--green);">🔊 ALARM: REAL SIREN ACTIVE</div>
+      <div style="font-size:11px; font-weight:bold; color:var(--green);">🔊 ALARM: REAL SIREN ARMED</div>
       <div style="font-size:9px; opacity:0.7;">VOL: <span id="volTxt">100%</span></div>
     </div>
     <div style="display:flex; gap:6px;">
@@ -122,6 +121,23 @@
     <button class="main-btn" id="startBtn">🎯 ENGAGE TRACKING</button>
   </div>
 
+  <!-- COMMERCIAL ACQUISITION / CONTACT BOX -->
+  <div class="acquire-card" id="acquireSec">
+    <div class="acquire-head">💼 COMMERCIAL RIGHTS & TECH ACQUISITION</div>
+    <div class="acquire-sub">
+      Full Edge-AI Source Code, Intellectual Property & Custom Vehicle Integration available for deployment.<br>
+      <b>Architect:</b> Rameshwar Kharade
+    </div>
+    <div class="contact-actions">
+      <a href="mailto:rameshwarkharade001@gmail.com?subject=Inquiry%20to%20Acquire%20Sentinel-X9%20Tech" class="contact-btn btn-mail">
+        ✉️ Contact Architect
+      </a>
+      <a href="https://wa.me/917666401052?text=Hello%20Rameshwar,%20I%20am%20interested%20in%20acquiring/licensing%20the%20Sentinel-X9%20Project." target="_blank" class="contact-btn btn-wa">
+        💬 WhatsApp Deal
+      </a>
+    </div>
+  </div>
+
   <script>
     const video = document.getElementById('webcam');
     const canvas = document.getElementById('canvas');
@@ -136,9 +152,9 @@
     const timerTxt = document.getElementById('timerTxt');
     const totalAlertsVal = document.getElementById('totalAlertsVal');
     const drowsyEventsVal = document.getElementById('drowsyEventsVal');
-    const alertCountBadge = document.getElementById('alertCountBadge');
     const volTxt = document.getElementById('volTxt');
     const sensSelect = document.getElementById('sensSelect');
+    const headStatusTxt = document.getElementById('headStatusTxt');
 
     let isTracking = false;
     let audioCtx = null;
@@ -151,6 +167,11 @@
     let earThreshold = 0.18;
     let frameTrigger = 8;
     let graphData = [15, 18, 16, 20, 18, 17, 19, 18, 22, 18, 16, 18];
+
+    // Face Oval Contour Landmark Indices
+    const FACE_OVAL = [10, 338, 297, 332, 284, 251, 389, 356, 454, 323, 361, 288, 397, 365, 379, 378, 400, 377, 152, 148, 176, 149, 150, 136, 172, 58, 132, 93, 234, 127, 162, 21, 54, 103, 67, 109];
+    const LEFT_EYE = [33, 160, 158, 133, 153, 144, 33];
+    const RIGHT_EYE = [362, 385, 387, 263, 373, 380, 362];
 
     function drawGraph(newVal) {
       graphData.push(newVal);
@@ -202,8 +223,8 @@
       const osc = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
       osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(950, audioCtx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(320, audioCtx.currentTime + 0.22);
+      osc.frequency.setValueAtTime(960, audioCtx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(340, audioCtx.currentTime + 0.22);
       gain.gain.setValueAtTime(volumeLevel * 0.7, audioCtx.currentTime);
       gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.22);
       osc.connect(gain);
@@ -226,6 +247,20 @@
       return ((lv1 + lv2) / (2.0 * lh) + (rv1 + rv2) / (2.0 * rh)) / 2.0;
     }
 
+    function drawContour(indices, lm, color, lineWidth = 1.8) {
+      ctx.strokeStyle = color;
+      ctx.lineWidth = lineWidth;
+      ctx.beginPath();
+      indices.forEach((idx, i) => {
+        const x = lm[idx].x * canvas.width;
+        const y = lm[idx].y * canvas.height;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.closePath();
+      ctx.stroke();
+    }
+
     const faceMesh = new FaceMesh({
       locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
     });
@@ -239,28 +274,18 @@
         const ear = getEAR(lm);
         earVal.innerText = ear.toFixed(2);
 
-        let minX = 1, maxX = 0, minY = 1, maxY = 0;
-        lm.forEach(p => {
-          if (p.x < minX) minX = p.x;
-          if (p.x > maxX) maxX = p.x;
-          if (p.y < minY) minY = p.y;
-          if (p.y > maxY) maxY = p.y;
-        });
+        const tilt = Math.abs(lm[1].x - lm[152].x);
+        if (tilt > 0.08) {
+          headStatusTxt.innerText = "HEAD: TILTED / OFF-AXIS";
+          headStatusTxt.style.color = "var(--yellow)";
+        } else {
+          headStatusTxt.innerText = "HEAD: CENTERED";
+          headStatusTxt.style.color = "var(--green)";
+        }
 
-        const fx = minX * canvas.width, fy = minY * canvas.height;
-        const fw = (maxX - minX) * canvas.width, fh = (maxY - minY) * canvas.height;
-
-        ctx.strokeStyle = '#00ff66';
-        ctx.lineWidth = 1.8;
-        ctx.strokeRect(fx - 6, fy - 10, fw + 12, fh + 16);
-
-        const lx = lm[33].x * canvas.width, ly = lm[158].y * canvas.height;
-        const lw = (lm[133].x - lm[33].x) * canvas.width;
-        const rx = lm[362].x * canvas.width, ry = lm[387].y * canvas.height;
-        const rw = (lm[263].x - lm[362].x) * canvas.width;
-
-        ctx.strokeRect(lx - 4, ly - 4, lw + 8, 22);
-        ctx.strokeRect(rx - 4, ry - 4, rw + 8, 22);
+        drawContour(FACE_OVAL, lm, 'rgba(0, 255, 102, 0.85)', 2.0);
+        drawContour(LEFT_EYE, lm, '#00f2fe', 1.6);
+        drawContour(RIGHT_EYE, lm, '#00f2fe', 1.6);
 
         if (ear < earThreshold) {
           closedFrames++;
@@ -281,7 +306,6 @@
               totalAlerts++;
               drowsyEventsVal.innerText = drowsyEvents;
               totalAlertsVal.innerText = totalAlerts;
-              alertCountBadge.innerText = totalAlerts;
               drowsyEventsVal.style.color = "var(--red)";
             }
           }
