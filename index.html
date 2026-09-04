@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>SENTINEL-X9 // APEX NEURAL HUD</title>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -35,17 +36,17 @@
 
     .hud-topbar {
       width: 100%; max-width: 480px; display: flex; justify-content: space-between;
-      align-items: center; padding: 10px 14px;
+      align-items: center; padding: 8px 14px;
       background: var(--panel-bg); border: 1px solid rgba(0, 242, 254, 0.45);
-      border-radius: 10px; backdrop-filter: blur(12px); margin-bottom: 6px;
+      border-radius: 8px; backdrop-filter: blur(12px); margin-bottom: 6px;
       box-shadow: 0 0 20px rgba(0, 242, 254, 0.2);
     }
     .hud-title { font-size: 15px; font-weight: 900; letter-spacing: 3px; text-shadow: 0 0 12px var(--neon-cyan); }
-    .hud-status-badge { font-size: 11px; padding: 3px 8px; border-radius: 4px; border: 1px solid var(--neon-green); color: var(--neon-green); font-weight: bold; letter-spacing: 1px; }
+    .hud-status-badge { font-size: 11px; padding: 3px 8px; border-radius: 4px; border: 1px solid var(--neon-green); color: var(--neon-green); font-weight: bold; }
 
     .viewport-box {
       position: relative; width: 100%; max-width: 480px; height: 420px;
-      border-radius: 14px; overflow: hidden; background: #000;
+      border-radius: 12px; overflow: hidden; background: #000;
       border: 2px solid var(--neon-cyan);
       box-shadow: 0 0 30px rgba(0, 242, 254, 0.25);
     }
@@ -296,27 +297,65 @@
       return v / h;
     }
 
-    // 3D Holographic Eye Reticle
-    function drawHoloReticle(ctx, cx, cy, isAlert) {
+    // Full 3D Sci-Fi Triangulation Grid
+    function renderFull3DMesh(ctx, lm, isAlert) {
+      const strokeCol = isAlert ? 'rgba(255, 0, 60, 0.45)' : 'rgba(0, 242, 254, 0.35)';
+      const dotCol = isAlert ? '#ff003c' : '#00f2fe';
+      ctx.strokeStyle = strokeCol;
+      ctx.lineWidth = 0.8;
+
+      if (window.FACEMESH_TESSELATION) {
+        for (const [i, j] of FACEMESH_TESSELATION) {
+          const p1 = lm[i], p2 = lm[j];
+          ctx.beginPath();
+          ctx.moveTo(p1.x * canvas.width, p1.y * canvas.height);
+          ctx.lineTo(p2.x * canvas.width, p2.y * canvas.height);
+          ctx.stroke();
+        }
+      } else {
+        // Fallback dense procedural wireframe
+        const keyNodes = [10, 338, 297, 332, 284, 251, 389, 356, 454, 323, 361, 288, 397, 365, 379, 378, 400, 377, 152, 148, 176, 149, 150, 136, 172, 58, 132, 93, 234, 127, 162, 21, 54, 103, 67, 109];
+        ctx.beginPath();
+        keyNodes.forEach((idx, i) => {
+          const p = lm[idx];
+          if (i === 0) ctx.moveTo(p.x * canvas.width, p.y * canvas.height);
+          else ctx.lineTo(p.x * canvas.width, p.y * canvas.height);
+        });
+        ctx.closePath();
+        ctx.stroke();
+      }
+
+      // Feature Accent Nodes
+      [1, 4, 33, 133, 362, 263, 61, 291].forEach(idx => {
+        const p = lm[idx];
+        ctx.fillStyle = dotCol;
+        ctx.beginPath();
+        ctx.arc(p.x * canvas.width, p.y * canvas.height, 2, 0, Math.PI * 2);
+        ctx.fill();
+      });
+    }
+
+    // Advanced Sci-Fi Tactical Eye Reticle
+    function drawTacticalEye(ctx, cx, cy, isAlert) {
       ctx.save();
       const col = isAlert ? '#ff003c' : '#00f2fe';
       ctx.translate(cx, cy);
 
-      // Outer Rotating Segmented HUD
+      // Rotating Outer Radar Arc
       ctx.save();
       ctx.rotate(hudAngle);
       ctx.strokeStyle = col;
-      ctx.lineWidth = 2;
-      ctx.setLineDash([12, 8]);
+      ctx.lineWidth = 1.8;
+      ctx.setLineDash([14, 8]);
       ctx.beginPath();
-      ctx.arc(0, 0, 32, 0, Math.PI * 2);
+      ctx.arc(0, 0, 30, 0, Math.PI * 2);
       ctx.stroke();
       ctx.restore();
 
-      // Inner Counter-Rotating Hex
+      // Counter-rotating Inner Hex Track
       ctx.save();
-      ctx.rotate(-hudAngle * 1.6);
-      ctx.strokeStyle = isAlert ? 'rgba(255,0,60,0.5)' : 'rgba(0,242,254,0.5)';
+      ctx.rotate(-hudAngle * 1.5);
+      ctx.strokeStyle = isAlert ? 'rgba(255, 0, 60, 0.5)' : 'rgba(0, 242, 254, 0.5)';
       ctx.lineWidth = 1.2;
       ctx.setLineDash([4, 6]);
       ctx.beginPath();
@@ -324,47 +363,23 @@
       ctx.stroke();
       ctx.restore();
 
-      // Cyberpunk Target Brackets
+      // Precision Corner Brackets
       ctx.strokeStyle = col;
       ctx.lineWidth = 2;
       ctx.setLineDash([]);
-      const s = 38, b = 10;
+      const s = 34, b = 9;
       ctx.beginPath(); ctx.moveTo(-s, -s + b); ctx.lineTo(-s, -s); ctx.lineTo(-s + b, -s); ctx.stroke();
       ctx.beginPath(); ctx.moveTo(s - b, -s); ctx.lineTo(s, -s); ctx.lineTo(s, -s + b); ctx.stroke();
       ctx.beginPath(); ctx.moveTo(-s, s - b); ctx.lineTo(-s, s); ctx.lineTo(-s + b, s); ctx.stroke();
       ctx.beginPath(); ctx.moveTo(s - b, s); ctx.lineTo(s, s); ctx.lineTo(s, s - b); ctx.stroke();
 
-      // Center Laser Core
+      // Core Target Dot
       ctx.fillStyle = col;
       ctx.beginPath();
       ctx.arc(0, 0, 3, 0, Math.PI * 2);
       ctx.fill();
 
       ctx.restore();
-    }
-
-    // 3D Face Wireframe Connectors
-    function drawFacialMesh(ctx, landmarks, isAlert) {
-      const meshColor = isAlert ? 'rgba(255, 0, 60, 0.45)' : 'rgba(0, 242, 254, 0.35)';
-      ctx.strokeStyle = meshColor;
-      ctx.lineWidth = 1;
-
-      const pathIndices = [
-        [10, 338, 297, 332, 284, 251, 389, 356, 454, 323, 361, 288, 397, 365, 379, 378, 400, 377, 152, 148, 176, 149, 150, 136, 172, 58, 132, 93, 234, 127, 162, 21, 54, 103, 67, 109, 10], // Jawline & Face Oval
-        [168, 6, 197, 195, 5, 4, 1, 19, 94, 2] // Nose Bridge
-      ];
-
-      pathIndices.forEach(path => {
-        ctx.beginPath();
-        path.forEach((idx, i) => {
-          const pt = landmarks[idx];
-          const x = pt.x * canvas.width;
-          const y = pt.y * canvas.height;
-          if (i === 0) ctx.moveTo(x, y);
-          else ctx.lineTo(x, y);
-        });
-        ctx.stroke();
-      });
     }
 
     const faceMesh = new FaceMesh({
@@ -392,23 +407,23 @@
         document.getElementById('speedVal').innerText = Math.floor(75 + Math.sin(now/1000) * 7);
         updateRpm(Math.min(1, ear * 3.6));
 
-        // Precision Calibration: EAR < 0.16 indicates full closure
+        // Precision Calibration: True eye closure threshold
         const isEyeClosed = ear < 0.16;
 
-        // Draw 3D Sci-Fi Face Wireframe
-        drawFacialMesh(ctx, landmarks, isEyeClosed);
+        // Render Hollywood Sci-Fi Face Mesh
+        renderFull3DMesh(ctx, landmarks, isEyeClosed);
 
-        // Center points for eyes
+        // Eye coordinates
         const lx = landmarks[133].x * canvas.width;
         const ly = landmarks[133].y * canvas.height;
         const rx = landmarks[362].x * canvas.width;
         const ry = landmarks[362].y * canvas.height;
 
-        // Draw Advanced Holographic HUD Reticles
-        drawHoloReticle(ctx, lx, ly, isEyeClosed);
-        drawHoloReticle(ctx, rx, ry, isEyeClosed);
+        // Draw 3D Tactical Reticles
+        drawTacticalEye(ctx, lx, ly, isEyeClosed);
+        drawTacticalEye(ctx, rx, ry, isEyeClosed);
 
-        // Telemetry Laser Line
+        // Telemetry Line between eyes
         ctx.strokeStyle = isEyeClosed ? 'rgba(255, 0, 60, 0.7)' : 'rgba(0, 242, 254, 0.6)';
         ctx.lineWidth = 1.2;
         ctx.beginPath();
@@ -416,7 +431,7 @@
         ctx.lineTo(rx, ry);
         ctx.stroke();
 
-        // 30 Frames Threshold (~1.8 - 2.0 Seconds of genuine sleep)
+        // 30 Frames Filter (~1.8 to 2.0 seconds sustained closure)
         if (isEyeClosed) {
           closedEyeFrames++;
           if (closedEyeFrames > 30) {
@@ -497,4 +512,3 @@
   </script>
 </body>
 </html>
-
