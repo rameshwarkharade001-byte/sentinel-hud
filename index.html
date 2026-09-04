@@ -2,269 +2,211 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>SENTINEL-X9 // APEX NEURAL HUD</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SENTINEL-X9 PRO 2.0 // AUTONOMOUS HUD</title>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace; }
     :root {
-      --neon-cyan: #00f2fe;
-      --neon-red: #ff003c;
+      --bg-dark: #020813;
+      --panel-bg: #061224;
+      --card-bg: rgba(9, 23, 44, 0.7);
+      --border-cyan: #00f2fe;
+      --border-dim: rgba(0, 242, 254, 0.25);
       --neon-green: #00ff66;
-      --neon-gold: #ffb703;
-      --panel-bg: rgba(6, 12, 28, 0.88);
+      --neon-red: #ff003c;
+      --neon-yellow: #ffb703;
+      --text-main: #e2f1ff;
     }
-    body {
-      background: radial-gradient(circle at 50% 20%, #0c1836 0%, #02050e 100%);
-      color: var(--neon-cyan);
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Courier New", monospace;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      min-height: 100vh;
-      padding: 6px;
-      overflow-x: hidden;
-      user-select: none;
-    }
-    #flashOverlay {
-      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-      background: #fff; opacity: 0; pointer-events: none; z-index: 999;
-      transition: opacity 0.04s ease;
-    }
-    .strobe-active { opacity: 0.88 !important; background: var(--neon-red) !important; }
+    body { background: var(--bg-dark); color: var(--text-main); min-height: 100vh; padding: 12px; overflow-x: hidden; }
+    
+    /* TOP NAVBAR */
+    .topbar { display: flex; justify-content: space-between; align-items: center; padding: 8px 16px; margin-bottom: 12px; border-bottom: 1px solid var(--border-dim); }
+    .brand { font-size: 20px; font-weight: 900; letter-spacing: 2px; color: var(--border-cyan); display: flex; align-items: center; gap: 8px; }
+    .status-pill { background: rgba(0, 255, 102, 0.15); border: 1px solid var(--neon-green); color: var(--neon-green); font-size: 11px; padding: 4px 12px; border-radius: 20px; font-weight: 700; letter-spacing: 1px; }
 
-    .hud-topbar {
-      width: 100%; max-width: 480px; display: flex; justify-content: space-between;
-      align-items: center; padding: 10px 14px;
-      background: var(--panel-bg); border: 1px solid rgba(0, 242, 254, 0.45);
-      border-radius: 10px; backdrop-filter: blur(12px); margin-bottom: 6px;
-      box-shadow: 0 0 20px rgba(0, 242, 254, 0.2);
-    }
-    .hud-title { font-size: 15px; font-weight: 900; letter-spacing: 3px; text-shadow: 0 0 12px var(--neon-cyan); }
-    .hud-status-badge { font-size: 11px; padding: 3px 8px; border-radius: 4px; border: 1px solid var(--neon-green); color: var(--neon-green); font-weight: bold; letter-spacing: 1px; }
+    /* DASHBOARD GRID */
+    .app-container { display: grid; grid-template-columns: 200px 1fr 260px; gap: 12px; max-width: 1400px; margin: 0 auto; }
+    @media (max-width: 900px) { .app-container { grid-template-columns: 1fr; } }
 
-    .viewport-box {
-      position: relative; width: 100%; max-width: 480px; height: 420px;
-      border-radius: 14px; overflow: hidden; background: #000;
-      border: 2px solid var(--neon-cyan);
-      box-shadow: 0 0 30px rgba(0, 242, 254, 0.25);
-    }
-    video, canvas {
-      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-      object-fit: cover; transform: scaleX(-1);
-    }
-    .night-vision-mode video {
-      filter: brightness(1.2) contrast(1.4) hue-rotate(95deg) saturate(2);
-    }
+    /* SIDEBAR */
+    .sidebar { display: flex; flex-direction: column; gap: 6px; }
+    .nav-btn { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: var(--card-bg); border: 1px solid var(--border-dim); color: var(--text-main); border-radius: 8px; font-size: 12px; cursor: pointer; text-decoration: none; }
+    .nav-btn.active { background: rgba(0, 242, 254, 0.15); border-color: var(--border-cyan); color: var(--border-cyan); font-weight: bold; }
+    .pro-box { margin-top: auto; padding: 12px; border: 1px dashed var(--neon-yellow); border-radius: 8px; text-align: center; color: var(--neon-yellow); font-size: 11px; }
 
-    .scanner-beam {
-      position: absolute; width: 100%; height: 2px;
-      background: linear-gradient(90deg, transparent, var(--neon-cyan), transparent);
-      box-shadow: 0 0 14px var(--neon-cyan);
-      animation: scanAnim 2.2s infinite linear; pointer-events: none;
-    }
-    @keyframes scanAnim {
-      0% { top: 0; opacity: 0; }
-      50% { opacity: 1; }
-      100% { top: 100%; opacity: 0; }
-    }
+    /* CENTER VIEWPORT */
+    .center-col { display: flex; flex-direction: column; gap: 12px; }
+    .cam-viewport { position: relative; width: 100%; height: 420px; background: #000; border: 2px solid var(--border-cyan); border-radius: 12px; overflow: hidden; }
+    video, canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
+    .cam-overlay-info { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(2, 8, 19, 0.85); padding: 8px 14px; display: flex; justify-content: space-between; font-size: 12px; border-top: 1px solid var(--border-dim); }
 
-    .rpm-container {
-      width: 100%; max-width: 480px; height: 10px; background: rgba(0,0,0,0.6);
-      border: 1px solid rgba(0,242,254,0.3); border-radius: 6px; margin-top: 6px;
-      overflow: hidden; display: flex; gap: 2px; padding: 1px;
-    }
-    .rpm-bar { height: 100%; flex: 1; background: rgba(0, 242, 254, 0.12); border-radius: 1px; }
-    .rpm-bar.active { background: var(--neon-green); box-shadow: 0 0 6px var(--neon-green); }
-    .rpm-bar.warning { background: var(--neon-gold); box-shadow: 0 0 6px var(--neon-gold); }
-    .rpm-bar.danger { background: var(--neon-red); box-shadow: 0 0 6px var(--neon-red); }
+    /* BOTTOM CONTROLS & LOGS */
+    .audio-strip { display: flex; justify-content: space-between; align-items: center; background: var(--panel-bg); border: 1px solid var(--border-dim); border-radius: 8px; padding: 10px 14px; }
+    .stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+    .stat-card { background: var(--panel-bg); border: 1px solid var(--border-dim); border-radius: 8px; padding: 10px; text-align: center; }
+    .stat-val { font-size: 18px; font-weight: 800; color: var(--border-cyan); }
+    .stat-lbl { font-size: 9px; opacity: 0.7; letter-spacing: 0.5px; }
 
-    .cluster-grid {
-      width: 100%; max-width: 480px; display: grid; grid-template-columns: 1fr 1fr 1fr;
-      gap: 6px; margin-top: 6px;
-    }
-    .cluster-card {
-      background: var(--panel-bg); border: 1px solid rgba(0, 242, 254, 0.25);
-      padding: 8px 6px; border-radius: 8px; text-align: center;
-      backdrop-filter: blur(8px);
-    }
-    .cluster-val { font-size: 17px; font-weight: 900; color: #fff; text-shadow: 0 0 8px var(--neon-cyan); }
-    .cluster-lbl { font-size: 9px; opacity: 0.75; letter-spacing: 1px; margin-top: 2px; }
+    .bottom-actions { display: flex; gap: 10px; align-items: center; margin-top: 6px; }
+    .main-btn { flex: 2; padding: 14px; background: rgba(0, 242, 254, 0.15); border: 2px solid var(--border-cyan); color: var(--border-cyan); border-radius: 8px; font-size: 14px; font-weight: 900; cursor: pointer; }
+    .drop-sel { flex: 1; padding: 12px; background: var(--panel-bg); border: 1px solid var(--border-dim); color: var(--border-cyan); border-radius: 8px; font-size: 12px; outline: none; }
 
-    .audio-config-bar {
-      width: 100%; max-width: 480px; margin-top: 6px;
-      background: var(--panel-bg); border: 1px dashed rgba(0, 242, 254, 0.4);
-      border-radius: 8px; padding: 8px 12px; display: flex;
-      justify-content: space-between; align-items: center;
-    }
-    .audio-config-text { font-size: 11px; letter-spacing: 1px; color: #fff; }
-    .custom-file-btn {
-      padding: 6px 12px; font-size: 10px; font-weight: bold;
-      background: rgba(0, 242, 254, 0.15); border: 1px solid var(--neon-cyan);
-      color: var(--neon-cyan); border-radius: 4px; cursor: pointer;
-    }
-
-    .btn-row {
-      width: 100%; max-width: 480px; display: flex; gap: 6px; margin-top: 8px;
-    }
-    .tactical-btn {
-      flex: 1; padding: 12px; background: rgba(0, 242, 254, 0.08);
-      border: 1px solid var(--neon-cyan); color: var(--neon-cyan);
-      font-weight: 900; font-size: 12px; letter-spacing: 2px;
-      border-radius: 6px; cursor: pointer; transition: 0.2s;
-    }
-    .tactical-btn:active { background: var(--neon-cyan); color: #000; }
-    .btn-nv { border-color: var(--neon-green); color: var(--neon-green); }
-
-    .credit-tag {
-      margin-top: 10px; font-size: 10px; letter-spacing: 2px;
-      color: rgba(255, 255, 255, 0.6);
-    }
-    .credit-tag span { color: var(--neon-cyan); font-weight: bold; }
+    /* RIGHT COLUMN WIDGETS */
+    .right-col { display: flex; flex-direction: column; gap: 10px; }
+    .widget-box { background: var(--panel-bg); border: 1px solid var(--border-dim); border-radius: 10px; padding: 12px; text-align: center; }
+    .score-circle { width: 90px; height: 90px; border-radius: 50%; border: 6px solid var(--neon-green); display: flex; flex-direction: column; align-items: center; justify-content: center; margin: 8px auto; font-size: 24px; font-weight: 900; color: #fff; }
+    .alert-list { list-style: none; text-align: left; font-size: 11px; margin-top: 6px; }
+    .alert-item { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+    
+    #flashOverlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: red; opacity: 0; pointer-events: none; z-index: 999; }
+    .strobe { opacity: 0.8 !important; }
   </style>
 </head>
 <body>
-
   <div id="flashOverlay"></div>
+  
+  <header class="topbar">
+    <div class="brand">SENTINEL-X9 <span>PRO 2.0</span></div>
+    <div class="status-pill" id="liveBadge">SYSTEM ONLINE</div>
+  </header>
 
-  <div class="hud-topbar">
-    <div class="hud-title">SENTINEL-X9 PRO</div>
-    <div class="hud-status-badge" id="sysState">ONLINE // STANDBY</div>
+  <div class="app-container">
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="nav-btn active">📊 DASHBOARD</div>
+      <div class="nav-btn">👁️ EYE TRACKER</div>
+      <div class="nav-btn">🔔 ALERTS <span style="background:red; color:#fff; padding:1px 6px; border-radius:10px; margin-left:auto;">2</span></div>
+      <div class="nav-btn">📈 STATISTICS</div>
+      <div class="nav-btn">🕒 HISTORY</div>
+      <div class="nav-btn">⚙️ SETTINGS</div>
+      <div class="pro-box">★ PRO MODE<br><small>UNLOCKED</small></div>
+    </aside>
+
+    <!-- CENTER FEED & CONTROLS -->
+    <main class="center-col">
+      <div class="cam-viewport">
+        <video id="webcam" playsinline autoplay muted></video>
+        <canvas id="canvas"></canvas>
+        <div class="cam-overlay-info">
+          <span id="eyeStateTxt" style="color:var(--neon-green);">👁️ EYES OPEN</span>
+          <span>EAR: <b id="earVal">0.24</b></span>
+          <span>MAR: <b id="marVal">0.12</b></span>
+        </div>
+      </div>
+
+      <div class="audio-strip">
+        <div>🔊 SMART ALARM: <b id="alarmMode">ACTIVE (BEEP)</b></div>
+        <div style="display:flex; gap:6px; align-items:center;">
+          VOL: 
+          <button onclick="changeVol(-10)" style="padding:2px 8px; background:#000; color:#00f2fe; border:1px solid #00f2fe;">-</button>
+          <span id="volTxt">80%</span>
+          <button onclick="changeVol(10)" style="padding:2px 8px; background:#000; color:#00f2fe; border:1px solid #00f2fe;">+</button>
+        </div>
+      </div>
+
+      <div class="stat-row">
+        <div class="stat-card"><div class="stat-val" id="sessionTimer">00:00</div><div class="stat-lbl">SESSION TIME</div></div>
+        <div class="stat-card"><div class="stat-val" id="totalAlerts">0</div><div class="stat-lbl">TOTAL ALERTS</div></div>
+        <div class="stat-card"><div class="stat-val" id="drowsyEvents">0</div><div class="stat-lbl">DROWSY EVENTS</div></div>
+        <div class="stat-card"><div class="stat-val" style="color:var(--neon-green);">98%</div><div class="stat-lbl">PERFORMANCE</div></div>
+      </div>
+
+      <div class="bottom-actions">
+        <select class="drop-sel" id="sensSelect">
+          <option value="med">SENSITIVITY: MEDIUM</option>
+          <option value="high">SENSITIVITY: HIGH</option>
+          <option value="low">SENSITIVITY: LOW</option>
+        </select>
+        <button class="main-btn" id="startStopBtn">START / STOP TRACKING</button>
+      </div>
+    </main>
+
+    <!-- RIGHT METRICS -->
+    <aside class="right-col">
+      <div class="widget-box">
+        <div style="font-size:11px; opacity:0.8;">DROWSINESS SCORE</div>
+        <div class="score-circle" id="scoreGauge">12<small style="font-size:10px;">/100</small></div>
+        <div style="font-size:11px; color:var(--neon-green);" id="vigilanceVerdict">YOU ARE ALERT</div>
+      </div>
+
+      <div class="widget-box">
+        <div style="font-size:11px; opacity:0.8;">ATTENTION LEVEL</div>
+        <div style="font-size:18px; font-weight:bold; color:var(--neon-green); margin:6px 0;">HIGH</div>
+        <div style="font-size:11px; color:var(--border-cyan);">HEAD: CENTERED</div>
+      </div>
+
+      <div class="widget-box" style="flex:1;">
+        <div style="font-size:11px; opacity:0.8; margin-bottom:8px;">RECENT ALERTS</div>
+        <ul class="alert-list" id="alertLog">
+          <li class="alert-item"><span>Sys Boot</span><span style="color:var(--neon-green);">OK</span></li>
+        </ul>
+      </div>
+    </aside>
   </div>
-
-  <div class="viewport-box" id="viewport">
-    <video id="webcam" playsinline autoplay muted></video>
-    <canvas id="telemetryCanvas"></canvas>
-    <div class="scanner-beam"></div>
-  </div>
-
-  <div class="rpm-container" id="rpmStrip"></div>
-
-  <div class="cluster-grid">
-    <div class="cluster-card">
-      <div class="cluster-val" id="speedVal">0</div>
-      <div class="cluster-lbl">VELOCITY (KM/H)</div>
-    </div>
-    <div class="cluster-card">
-      <div class="cluster-val" id="gearVal" style="color:var(--neon-gold);">DRIVE [D]</div>
-      <div class="cluster-lbl">TRANSMISSION</div>
-    </div>
-    <div class="cluster-card">
-      <div class="cluster-val" id="earVal">0.00</div>
-      <div class="cluster-lbl">OCULAR RATIO</div>
-    </div>
-  </div>
-
-  <div class="cluster-grid">
-    <div class="cluster-card">
-      <div class="cluster-val" id="yawnCount">0</div>
-      <div class="cluster-lbl">YAWN DETECTS</div>
-    </div>
-    <div class="cluster-card">
-      <div class="cluster-val" id="vigilanceScore" style="color:var(--neon-green);">100%</div>
-      <div class="cluster-lbl">VIGILANCE INDEX</div>
-    </div>
-    <div class="cluster-card">
-      <div class="cluster-val" id="fpsVal">0</div>
-      <div class="cluster-lbl">NEURAL FPS</div>
-    </div>
-  </div>
-
-  <div class="audio-config-bar">
-    <div class="audio-config-text" id="alarmLabel">ALARM: DEFAULT SIREN</div>
-    <label class="custom-file-btn">
-      CHOOSE FILE
-      <input type="file" id="customAudioInput" accept="audio/*" style="display:none;">
-    </label>
-  </div>
-
-  <div class="btn-row">
-    <button class="tactical-btn" id="startBtn">ENGAGE APEX CORE</button>
-    <button class="tactical-btn btn-nv" id="nvBtn">THERMAL / NV</button>
-  </div>
-
-  <div class="credit-tag">
-    LEAD ARCHITECT: <span>RAMESHWAR KHARADE</span>
-  </div>
-
-  <audio id="customPlayer" loop></audio>
     <script>
     const video = document.getElementById('webcam');
-    const canvas = document.getElementById('telemetryCanvas');
+    const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
     const flashOverlay = document.getElementById('flashOverlay');
-    const startBtn = document.getElementById('startBtn');
-    const nvBtn = document.getElementById('nvBtn');
-    const viewport = document.getElementById('viewport');
-    const customAudioInput = document.getElementById('customAudioInput');
-    const customPlayer = document.getElementById('customPlayer');
-    const alarmLabel = document.getElementById('alarmLabel');
+    const startStopBtn = document.getElementById('startStopBtn');
+    const eyeStateTxt = document.getElementById('eyeStateTxt');
+    const earVal = document.getElementById('earVal');
+    const marVal = document.getElementById('marVal');
+    const scoreGauge = document.getElementById('scoreGauge');
+    const vigilanceVerdict = document.getElementById('vigilanceVerdict');
+    const sessionTimer = document.getElementById('sessionTimer');
+    const totalAlertsEl = document.getElementById('totalAlerts');
+    const drowsyEventsEl = document.getElementById('drowsyEvents');
+    const alertLog = document.getElementById('alertLog');
+    const volTxt = document.getElementById('volTxt');
+    const sensSelect = document.getElementById('sensSelect');
+    const liveBadge = document.getElementById('liveBadge');
 
-    let audioCtx, isRunning = false, nightVision = false;
-    let yawns = 0, lastYawnTime = 0, closedEyeFrames = 0;
-    let lastFrameTime = performance.now(), fps = 0;
-    let customAudioActive = false;
-    let hudAngle = 0;
+    let isTracking = false;
+    let audioCtx = null;
+    let volumeLevel = 0.8;
+    let secondsElapsed = 0;
+    let timerInterval = null;
+    let totalAlerts = 0;
+    let drowsyEvents = 0;
+    let closedFrames = 0;
+    let earThreshold = 0.18;
+    let frameTriggerLimit = 10; // Medium default (~0.8s)
 
-    // Custom Audio Selector
-    customAudioInput.addEventListener('change', function(e) {
-      const file = e.target.files[0];
-      if (file) {
-        const fileURL = URL.createObjectURL(file);
-        customPlayer.src = fileURL;
-        customAudioActive = true;
-        alarmLabel.innerText = "ALARM: " + file.name.substring(0, 15) + "..";
+    // Sensitivity Control
+    sensSelect.addEventListener('change', (e) => {
+      if (e.target.value === 'high') {
+        earThreshold = 0.20;
+        frameTriggerLimit = 7;
+      } else if (e.target.value === 'low') {
+        earThreshold = 0.16;
+        frameTriggerLimit = 16;
+      } else {
+        earThreshold = 0.18;
+        frameTriggerLimit = 10;
       }
     });
 
-    // 24 RPM Segments
-    const rpmStrip = document.getElementById('rpmStrip');
-    for (let i = 0; i < 24; i++) {
-      const bar = document.createElement('div');
-      bar.className = 'rpm-bar';
-      rpmStrip.appendChild(bar);
-    }
-    const rpmBars = document.querySelectorAll('.rpm-bar');
+    // Volume Control Functions
+    window.changeVol = function(delta) {
+      volumeLevel = Math.max(0, Math.min(1, volumeLevel + (delta / 100)));
+      volTxt.innerText = Math.round(volumeLevel * 100) + '%';
+    };
 
-    function updateRpm(ratio) {
-      const activeCount = Math.floor(ratio * rpmBars.length);
-      rpmBars.forEach((bar, idx) => {
-        bar.className = 'rpm-bar';
-        if (idx < activeCount) {
-          if (idx > 18) bar.classList.add('danger', 'active');
-          else if (idx > 13) bar.classList.add('warning', 'active');
-          else bar.classList.add('active');
-        }
-      });
-    }
-
+    // Synthesizer Audio Alarm
     function initAudio() {
       if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     }
 
-    function startAlarm() {
-      if (customAudioActive) {
-        if (customPlayer.paused) customPlayer.play().catch(() => {});
-      } else {
-        triggerSynthAlarm();
-      }
-    }
-
-    function stopAlarm() {
-      if (customAudioActive) {
-        customPlayer.pause();
-        customPlayer.currentTime = 0;
-      }
-    }
-
-    function triggerSynthAlarm() {
-      if (!audioCtx) return;
+    function soundSiren() {
+      if (!audioCtx || volumeLevel === 0) return;
       const osc = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
       osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(920, audioCtx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(320, audioCtx.currentTime + 0.25);
-      gain.gain.setValueAtTime(0.35, audioCtx.currentTime);
+      osc.frequency.setValueAtTime(880, audioCtx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(340, audioCtx.currentTime + 0.25);
+      gain.gain.setValueAtTime(volumeLevel * 0.5, audioCtx.currentTime);
       gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.25);
       osc.connect(gain);
       gain.connect(audioCtx.destination);
@@ -272,190 +214,133 @@
       osc.stop(audioCtx.currentTime + 0.25);
     }
 
-    function distance(p1, p2) {
+    // Add Live Entry to Recent Alerts List
+    function addLogEntry(text, level) {
+      const now = new Date();
+      const timeStr = now.toTimeString().split(' ')[0];
+      const li = document.createElement('li');
+      li.className = 'alert-item';
+      const color = level === 'HIGH' ? '#ff003c' : '#ffb703';
+      li.innerHTML = `<span>${timeStr} ${text}</span><span style="color:${color}; font-weight:bold;">${level}</span>`;
+      alertLog.prepend(li);
+      if (alertLog.children.length > 5) alertLog.removeChild(alertLog.lastChild);
+    }
+
+    // Mathematical Distance & Ratios
+    function dist(p1, p2) {
       return Math.hypot(p1.x - p2.x, p1.y - p2.y);
     }
 
-    function getEAR(landmarks) {
-      const leftV1 = distance(landmarks[160], landmarks[144]);
-      const leftV2 = distance(landmarks[158], landmarks[153]);
-      const leftH = distance(landmarks[33], landmarks[133]);
+    function calcEAR(lm) {
+      const leftV1 = dist(lm[160], lm[144]);
+      const leftV2 = dist(lm[158], lm[153]);
+      const leftH = dist(lm[33], lm[133]);
       const leftEAR = (leftV1 + leftV2) / (2.0 * leftH);
 
-      const rightV1 = distance(landmarks[385], landmarks[380]);
-      const rightV2 = distance(landmarks[387], landmarks[373]);
-      const rightH = distance(landmarks[362], landmarks[263]);
+      const rightV1 = dist(lm[385], lm[380]);
+      const rightV2 = dist(lm[387], lm[373]);
+      const rightH = dist(lm[362], lm[263]);
       const rightEAR = (rightV1 + rightV2) / (2.0 * rightH);
 
       return (leftEAR + rightEAR) / 2.0;
     }
 
-    function getMAR(landmarks) {
-      const v = distance(landmarks[13], landmarks[14]);
-      const h = distance(landmarks[78], landmarks[308]);
+    function calcMAR(lm) {
+      const v = dist(lm[13], lm[14]);
+      const h = dist(lm[78], lm[308]);
       return v / h;
     }
 
-    // 3D Holographic Eye Reticle
-    function drawHoloReticle(ctx, cx, cy, isAlert) {
-      ctx.save();
-      const col = isAlert ? '#ff003c' : '#00f2fe';
-      ctx.translate(cx, cy);
-
-      // Outer Rotating Segmented HUD
-      ctx.save();
-      ctx.rotate(hudAngle);
-      ctx.strokeStyle = col;
-      ctx.lineWidth = 2;
-      ctx.setLineDash([12, 8]);
-      ctx.beginPath();
-      ctx.arc(0, 0, 32, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.restore();
-
-      // Inner Counter-Rotating Hex
-      ctx.save();
-      ctx.rotate(-hudAngle * 1.6);
-      ctx.strokeStyle = isAlert ? 'rgba(255,0,60,0.5)' : 'rgba(0,242,254,0.5)';
-      ctx.lineWidth = 1.2;
-      ctx.setLineDash([4, 6]);
-      ctx.beginPath();
-      ctx.arc(0, 0, 20, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.restore();
-
-      // Cyberpunk Target Brackets
-      ctx.strokeStyle = col;
-      ctx.lineWidth = 2;
-      ctx.setLineDash([]);
-      const s = 38, b = 10;
-      ctx.beginPath(); ctx.moveTo(-s, -s + b); ctx.lineTo(-s, -s); ctx.lineTo(-s + b, -s); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(s - b, -s); ctx.lineTo(s, -s); ctx.lineTo(s, -s + b); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(-s, s - b); ctx.lineTo(-s, s); ctx.lineTo(-s + b, s); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(s - b, s); ctx.lineTo(s, s); ctx.lineTo(s, s - b); ctx.stroke();
-
-      // Center Laser Core
-      ctx.fillStyle = col;
-      ctx.beginPath();
-      ctx.arc(0, 0, 3, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.restore();
-    }
-
-    // 3D Face Wireframe Connectors
-    function drawFacialMesh(ctx, landmarks, isAlert) {
-      const meshColor = isAlert ? 'rgba(255, 0, 60, 0.45)' : 'rgba(0, 242, 254, 0.35)';
-      ctx.strokeStyle = meshColor;
-      ctx.lineWidth = 1;
-
-      const pathIndices = [
-        [10, 338, 297, 332, 284, 251, 389, 356, 454, 323, 361, 288, 397, 365, 379, 378, 400, 377, 152, 148, 176, 149, 150, 136, 172, 58, 132, 93, 234, 127, 162, 21, 54, 103, 67, 109, 10], // Jawline & Face Oval
-        [168, 6, 197, 195, 5, 4, 1, 19, 94, 2] // Nose Bridge
-      ];
-
-      pathIndices.forEach(path => {
-        ctx.beginPath();
-        path.forEach((idx, i) => {
-          const pt = landmarks[idx];
-          const x = pt.x * canvas.width;
-          const y = pt.y * canvas.height;
-          if (i === 0) ctx.moveTo(x, y);
-          else ctx.lineTo(x, y);
-        });
-        ctx.stroke();
-      });
-    }
-
+    // MediaPipe FaceMesh Setup
     const faceMesh = new FaceMesh({
       locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
     });
     faceMesh.setOptions({ maxNumFaces: 1, refineLandmarks: true, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5 });
 
     faceMesh.onResults((results) => {
-      const now = performance.now();
-      fps = Math.round(1000 / (now - lastFrameTime));
-      lastFrameTime = now;
-      document.getElementById('fpsVal').innerText = fps;
-
-      ctx.save();
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      hudAngle += 0.05;
-
       if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
-        const landmarks = results.multiFaceLandmarks[0];
-        const ear = getEAR(landmarks);
-        const mar = getMAR(landmarks);
+        const lm = results.multiFaceLandmarks[0];
+        const ear = calcEAR(lm);
+        const mar = calcMAR(lm);
 
-        document.getElementById('earVal').innerText = ear.toFixed(2);
-        document.getElementById('speedVal').innerText = Math.floor(75 + Math.sin(now/1000) * 7);
-        updateRpm(Math.min(1, ear * 3.6));
+        earVal.innerText = ear.toFixed(2);
+        marVal.innerText = mar.toFixed(2);
 
-        // Precision Calibration: EAR < 0.16 indicates full closure
-        const isEyeClosed = ear < 0.16;
+        // Calculate Face Bounding Box (As shown in your design)
+        let minX = 1, maxX = 0, minY = 1, maxY = 0;
+        lm.forEach(p => {
+          if (p.x < minX) minX = p.x;
+          if (p.x > maxX) maxX = p.x;
+          if (p.y < minY) minY = p.y;
+          if (p.y > maxY) maxY = p.y;
+        });
 
-        // Draw 3D Sci-Fi Face Wireframe
-        drawFacialMesh(ctx, landmarks, isEyeClosed);
+        const fx = minX * canvas.width;
+        const fy = minY * canvas.height;
+        const fw = (maxX - minX) * canvas.width;
+        const fh = (maxY - minY) * canvas.height;
 
-        // Center points for eyes
-        const lx = landmarks[133].x * canvas.width;
-        const ly = landmarks[133].y * canvas.height;
-        const rx = landmarks[362].x * canvas.width;
-        const ry = landmarks[362].y * canvas.height;
+        // Draw Main Green Face Box
+        ctx.strokeStyle = '#00ff66';
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(fx - 10, fy - 15, fw + 20, fh + 25);
 
-        // Draw Advanced Holographic HUD Reticles
-        drawHoloReticle(ctx, lx, ly, isEyeClosed);
-        drawHoloReticle(ctx, rx, ry, isEyeClosed);
+        // Eye Coordinates & Boxes
+        const lx = lm[33].x * canvas.width;
+        const ly = lm[158].y * canvas.height;
+        const lw = (lm[133].x - lm[33].x) * canvas.width;
+        const lh = (lm[153].y - lm[158].y) * canvas.height * 2.8;
 
-        // Telemetry Laser Line
-        ctx.strokeStyle = isEyeClosed ? 'rgba(255, 0, 60, 0.7)' : 'rgba(0, 242, 254, 0.6)';
-        ctx.lineWidth = 1.2;
-        ctx.beginPath();
-        ctx.moveTo(lx, ly);
-        ctx.lineTo(rx, ry);
-        ctx.stroke();
+        const rx = lm[362].x * canvas.width;
+        const ry = lm[387].y * canvas.height;
+        const rw = (lm[263].x - lm[362].x) * canvas.width;
+        const rh = (lm[373].y - lm[387].y) * canvas.height * 2.8;
 
-        // 30 Frames Threshold (~1.8 - 2.0 Seconds of genuine sleep)
-        if (isEyeClosed) {
-          closedEyeFrames++;
-          if (closedEyeFrames > 30) {
-            flashOverlay.classList.add('strobe-active');
-            startAlarm();
-            document.getElementById('sysState').innerText = "CRITICAL // SLEEP DETECTED";
-            document.getElementById('sysState').style.borderColor = "#ff003c";
-            document.getElementById('sysState').style.color = "#ff003c";
-            document.getElementById('vigilanceScore').innerText = "DANGER";
-            document.getElementById('vigilanceScore').style.color = "#ff003c";
+        ctx.strokeRect(lx - 4, ly - 6, lw + 8, Math.max(lh, 22));
+        ctx.strokeRect(rx - 4, ry - 6, rw + 8, Math.max(rh, 22));
+
+        // Drowsiness Evaluation
+        if (ear < earThreshold) {
+          closedFrames++;
+          eyeStateTxt.innerText = "⚠️ EYES CLOSED";
+          eyeStateTxt.style.color = "#ff003c";
+
+          // Real Score Rise
+          const dangerScore = Math.min(96, 40 + (closedFrames * 5));
+          scoreGauge.innerText = dangerScore;
+          scoreGauge.style.borderColor = "#ff003c";
+          vigilanceVerdict.innerText = "DROWSINESS DETECTED";
+          vigilanceVerdict.style.color = "#ff003c";
+
+          if (closedFrames > frameTriggerLimit) {
+            flashOverlay.classList.add('strobe');
+            soundSiren();
+
+            if (closedFrames === frameTriggerLimit + 1) {
+              totalAlerts++;
+              drowsyEvents++;
+              totalAlertsEl.innerText = totalAlerts;
+              drowsyEventsEl.innerText = drowsyEvents;
+              addLogEntry("Eyes closed > 1s", "HIGH");
+            }
           }
         } else {
-          closedEyeFrames = 0;
-          flashOverlay.classList.remove('strobe-active');
-          stopAlarm();
-          document.getElementById('sysState').innerText = "TRACKING // OPTIMAL";
-          document.getElementById('sysState').style.borderColor = "#00ff66";
-          document.getElementById('sysState').style.color = "#00ff66";
-          document.getElementById('vigilanceScore').innerText = "99%";
-          document.getElementById('vigilanceScore').style.color = "#00ff66";
+          closedFrames = 0;
+          flashOverlay.classList.remove('strobe');
+          eyeStateTxt.innerText = "👁️ EYES OPEN";
+          eyeStateTxt.style.color = "#00ff66";
+          scoreGauge.innerText = "18";
+          scoreGauge.style.borderColor = "#00ff66";
+          vigilanceVerdict.innerText = "YOU ARE ALERT";
+          vigilanceVerdict.style.color = "#00ff66";
         }
-
-        // Yawn Trigger
-        if (mar > 0.70 && (now - lastYawnTime) > 4000) {
-          yawns++;
-          lastYawnTime = now;
-          document.getElementById('yawnCount').innerText = yawns;
-          triggerSynthAlarm();
-        }
-      } else {
-        document.getElementById('sysState').innerText = "TARGET LOST // SEARCHING";
-        document.getElementById('sysState').style.borderColor = "#ffb703";
-        document.getElementById('sysState').style.color = "#ffb703";
-        updateRpm(0.08);
       }
-      ctx.restore();
     });
 
-    async function initCamera() {
+    // Camera Lifecycle
+    async function startCamera() {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { width: 640, height: 480, facingMode: 'user' }
       });
@@ -464,37 +349,50 @@
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
 
-      async function processLoop() {
-        if (isRunning) {
+      // Start Session Timer
+      secondsElapsed = 0;
+      timerInterval = setInterval(() => {
+        secondsElapsed++;
+        const mins = String(Math.floor(secondsElapsed / 60)).padStart(2, '0');
+        const secs = String(secondsElapsed % 60).padStart(2, '0');
+        sessionTimer.innerText = `${mins}:${secs}`;
+      }, 1000);
+
+      async function loop() {
+        if (isTracking) {
           await faceMesh.send({ image: video });
-          requestAnimationFrame(processLoop);
+          requestAnimationFrame(loop);
         }
       }
-      processLoop();
+      loop();
     }
 
-    startBtn.addEventListener('click', () => {
+    startStopBtn.addEventListener('click', () => {
       initAudio();
-      if (!isRunning) {
-        isRunning = true;
-        initCamera();
-        startBtn.innerText = "SYSTEM ENGAGED";
-        startBtn.style.background = "#00ff66";
-        startBtn.style.color = "#000";
-      }
-    });
+      isTracking = !isTracking;
 
-    nvBtn.addEventListener('click', () => {
-      nightVision = !nightVision;
-      if (nightVision) {
-        viewport.classList.add('night-vision-mode');
-        nvBtn.innerText = "NORMAL OPTICS";
+      if (isTracking) {
+        startCamera();
+        startStopBtn.innerText = "STOP TRACKING";
+        startStopBtn.style.borderColor = "#ff003c";
+        startStopBtn.style.color = "#ff003c";
+        liveBadge.innerText = "SYSTEM ACTIVE";
+        liveBadge.style.borderColor = "#00ff66";
+        addLogEntry("Tracking started", "OK");
       } else {
-        viewport.classList.remove('night-vision-mode');
-        nvBtn.innerText = "THERMAL / NV";
+        if (video.srcObject) {
+          video.srcObject.getTracks().forEach(track => track.stop());
+        }
+        clearInterval(timerInterval);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        startStopBtn.innerText = "START / STOP TRACKING";
+        startStopBtn.style.borderColor = "#00f2fe";
+        startStopBtn.style.color = "#00f2fe";
+        liveBadge.innerText = "SYSTEM STANDBY";
+        liveBadge.style.borderColor = "#ffb703";
+        addLogEntry("Tracking paused", "LOW");
       }
     });
   </script>
 </body>
 </html>
-
