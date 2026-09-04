@@ -12,17 +12,17 @@
       --neon-red: #ff003c;
       --neon-green: #00ff66;
       --neon-yellow: #ffb703;
-      --panel-bg: rgba(4, 9, 20, 0.85);
+      --panel-bg: rgba(4, 9, 22, 0.85);
     }
     body {
-      background: radial-gradient(circle at center, #070d1e 0%, #010308 100%);
+      background: radial-gradient(circle at center, #060d20 0%, #010307 100%);
       color: var(--neon-blue);
       font-family: 'Courier New', Courier, monospace;
       display: flex;
       flex-direction: column;
       align-items: center;
       min-height: 100vh;
-      padding: 8px;
+      padding: 6px;
       overflow-x: hidden;
       user-select: none;
     }
@@ -37,7 +37,7 @@
       width: 100%; max-width: 480px; display: flex; justify-content: space-between;
       align-items: center; padding: 8px 14px;
       background: var(--panel-bg); border: 1px solid rgba(0, 242, 254, 0.4);
-      border-radius: 8px; backdrop-filter: blur(10px); margin-bottom: 8px;
+      border-radius: 8px; backdrop-filter: blur(10px); margin-bottom: 6px;
       box-shadow: 0 0 15px rgba(0, 242, 254, 0.15);
     }
     .hud-title { font-size: 15px; font-weight: 900; letter-spacing: 3px; text-shadow: 0 0 10px var(--neon-blue); }
@@ -69,6 +69,16 @@
       100% { top: 100%; opacity: 0; }
     }
 
+    .rpm-container {
+      width: 100%; max-width: 480px; height: 10px; background: rgba(0,0,0,0.6);
+      border: 1px solid rgba(0,242,254,0.3); border-radius: 6px; margin-top: 6px;
+      overflow: hidden; display: flex; gap: 2px; padding: 1px;
+    }
+    .rpm-bar { height: 100%; flex: 1; background: rgba(0, 242, 254, 0.12); border-radius: 1px; }
+    .rpm-bar.active { background: var(--neon-green); box-shadow: 0 0 6px var(--neon-green); }
+    .rpm-bar.warning { background: var(--neon-yellow); box-shadow: 0 0 6px var(--neon-yellow); }
+    .rpm-bar.danger { background: var(--neon-red); box-shadow: 0 0 6px var(--neon-red); }
+
     .cluster-grid {
       width: 100%; max-width: 480px; display: grid; grid-template-columns: 1fr 1fr 1fr;
       gap: 6px; margin-top: 6px;
@@ -81,17 +91,6 @@
     .cluster-val { font-size: 17px; font-weight: 900; color: #fff; text-shadow: 0 0 8px var(--neon-blue); }
     .cluster-lbl { font-size: 9px; opacity: 0.75; letter-spacing: 1px; margin-top: 2px; }
 
-    .rpm-container {
-      width: 100%; max-width: 480px; height: 10px; background: rgba(0,0,0,0.6);
-      border: 1px solid rgba(0,242,254,0.3); border-radius: 6px; margin-top: 6px;
-      overflow: hidden; display: flex; gap: 2px; padding: 1px;
-    }
-    .rpm-bar { height: 100%; flex: 1; background: rgba(0, 242, 254, 0.12); border-radius: 1px; }
-    .rpm-bar.active { background: var(--neon-green); box-shadow: 0 0 6px var(--neon-green); }
-    .rpm-bar.warning { background: var(--neon-yellow); box-shadow: 0 0 6px var(--neon-yellow); }
-    .rpm-bar.danger { background: var(--neon-red); box-shadow: 0 0 6px var(--neon-red); }
-
-    /* CUSTOM ALARM CONTROLLER BAR */
     .audio-config-bar {
       width: 100%; max-width: 480px; margin-top: 6px;
       background: var(--panel-bg); border: 1px dashed rgba(0, 242, 254, 0.35);
@@ -171,7 +170,6 @@
     </div>
   </div>
 
-  <!-- CUSTOM AUDIO TONE PICKER -->
   <div class="audio-config-bar">
     <div class="audio-config-text" id="alarmLabel">ALARM: DEFAULT SIREN</div>
     <label class="custom-file-btn">
@@ -206,6 +204,7 @@
     let yawns = 0, lastYawnTime = 0, closedEyeFrames = 0;
     let lastFrameTime = performance.now(), fps = 0;
     let customAudioActive = false;
+    let rotationAngle = 0;
 
     // Custom File Selector Logic
     customAudioInput.addEventListener('change', function(e) {
@@ -245,7 +244,7 @@
 
     function startAlarm() {
       if (customAudioActive) {
-        if (customPlayer.paused) customPlayer.play();
+        if (customPlayer.paused) customPlayer.play().catch(() => {});
       } else {
         triggerSynthAlarm();
       }
@@ -297,29 +296,56 @@
       return v / h;
     }
 
-    // Reticle & Cyberpunk Target Drawing
-    function drawReticle(ctx, cx, cy, radius, ear) {
+    // High-Tech Cyberpunk Ocular Reticle
+    function drawCyberReticle(ctx, cx, cy, isAlert) {
       ctx.save();
-      const color = ear < 0.21 ? '#ff003c' : '#00f2fe';
-      ctx.strokeStyle = color;
+      const primaryColor = isAlert ? '#ff003c' : '#00f2fe';
+      const secondaryColor = isAlert ? 'rgba(255, 0, 60, 0.4)' : 'rgba(0, 242, 254, 0.4)';
+
+      ctx.translate(cx, cy);
+
+      // Rotating Outer Dashed Ring
+      ctx.save();
+      ctx.rotate(rotationAngle);
+      ctx.strokeStyle = primaryColor;
       ctx.lineWidth = 1.5;
-
-      // Circle
+      ctx.setLineDash([8, 6]);
       ctx.beginPath();
-      ctx.arc(cx, cy, radius, 0, 2 * Math.PI);
+      ctx.arc(0, 0, 30, 0, Math.PI * 2);
       ctx.stroke();
+      ctx.restore();
 
-      // Corner Tech Brackets
-      const len = 12;
-      const d = radius + 6;
-      // Top Left
-      ctx.beginPath(); ctx.moveTo(cx - d, cy - d + len); ctx.lineTo(cx - d, cy - d); ctx.lineTo(cx - d + len, cy - d); ctx.stroke();
-      // Top Right
-      ctx.beginPath(); ctx.moveTo(cx + d - len, cy - d); ctx.lineTo(cx + d, cy - d); ctx.lineTo(cx + d, cy - d + len); ctx.stroke();
-      // Bottom Left
-      ctx.beginPath(); ctx.moveTo(cx - d, cy + d - len); ctx.lineTo(cx - d, cy + d); ctx.lineTo(cx - d + len, cy + d); ctx.stroke();
-      // Bottom Right
-      ctx.beginPath(); ctx.moveTo(cx + d - len, cy + d); ctx.lineTo(cx + d, cy + d); ctx.lineTo(cx + d, cy + d - len); ctx.stroke();
+      // Counter-rotating Inner Hex Ring
+      ctx.save();
+      ctx.rotate(-rotationAngle * 1.5);
+      ctx.strokeStyle = secondaryColor;
+      ctx.lineWidth = 1;
+      ctx.setLineDash([4, 8]);
+      ctx.beginPath();
+      ctx.arc(0, 0, 22, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+
+      // Target Lock Brackets (4 Corners)
+      ctx.strokeStyle = primaryColor;
+      ctx.lineWidth = 2;
+      ctx.setLineDash([]);
+      const s = 36;
+      const b = 8;
+      // Top-Left
+      ctx.beginPath(); ctx.moveTo(-s, -s + b); ctx.lineTo(-s, -s); ctx.lineTo(-s + b, -s); ctx.stroke();
+      // Top-Right
+      ctx.beginPath(); ctx.moveTo(s - b, -s); ctx.lineTo(s, -s); ctx.lineTo(s, -s + b); ctx.stroke();
+      // Bottom-Left
+      ctx.beginPath(); ctx.moveTo(-s, -s + b); ctx.lineTo(-s, s); ctx.lineTo(-s + b, s); ctx.stroke();
+      // Bottom-Right
+      ctx.beginPath(); ctx.moveTo(s - b, s); ctx.lineTo(s, s); ctx.lineTo(s, s - b); ctx.stroke();
+
+      // Center Precision Dot
+      ctx.fillStyle = primaryColor;
+      ctx.beginPath();
+      ctx.arc(0, 0, 2.5, 0, Math.PI * 2);
+      ctx.fill();
 
       ctx.restore();
     }
@@ -338,16 +364,18 @@
       ctx.save();
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+      rotationAngle += 0.04;
+
       if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
         const landmarks = results.multiFaceLandmarks[0];
         const ear = getEAR(landmarks);
         const mar = getMAR(landmarks);
 
         document.getElementById('earVal').innerText = ear.toFixed(2);
-        document.getElementById('speedVal').innerText = Math.floor(72 + Math.sin(now/1200) * 9);
-        updateRpm(Math.min(1, ear * 3.4));
+        document.getElementById('speedVal').innerText = Math.floor(74 + Math.sin(now/1000) * 6);
+        updateRpm(Math.min(1, ear * 3.5));
 
-        // Draw Left and Right Retinal Reticles
+        // Eye coordinates
         const leftEye = landmarks[133];
         const rightEye = landmarks[362];
         const lx = leftEye.x * canvas.width;
@@ -355,29 +383,33 @@
         const rx = rightEye.x * canvas.width;
         const ry = rightEye.y * canvas.height;
 
-        drawReticle(ctx, lx, ly, 22, ear);
-        drawReticle(ctx, rx, ry, 22, ear);
+        // Calibrated Threshold: EAR < 0.17 means fully closed eyes
+        const isEyeClosed = ear < 0.17;
 
-        // Cross-hair line between eyes
-        ctx.strokeStyle = ear < 0.21 ? 'rgba(255, 0, 60, 0.4)' : 'rgba(0, 242, 254, 0.4)';
-        ctx.lineWidth = 1;
-        ctx.setLineDash([4, 4]);
+        // Draw Advanced Cyberpunk Reticles on both eyes
+        drawCyberReticle(ctx, lx, ly, isEyeClosed);
+        drawCyberReticle(ctx, rx, ry, isEyeClosed);
+
+        // Dynamic Connecting Laser Line
+        ctx.strokeStyle = isEyeClosed ? 'rgba(255, 0, 60, 0.6)' : 'rgba(0, 242, 254, 0.5)';
+        ctx.lineWidth = 1.2;
+        ctx.setLineDash([5, 5]);
         ctx.beginPath();
         ctx.moveTo(lx, ly);
         ctx.lineTo(rx, ry);
         ctx.stroke();
         ctx.setLineDash([]);
 
-        // Fatigue / Microsleep Trigger (EAR < 0.21)
-        if (ear < 0.21) {
+        // Continuous Eye Closure Filter: 25 frames (~1.5 to 2 seconds)
+        if (isEyeClosed) {
           closedEyeFrames++;
-          if (closedEyeFrames > 12) {
+          if (closedEyeFrames > 25) {
             flashOverlay.classList.add('strobe-active');
             startAlarm();
-            document.getElementById('sysState').innerText = "CRITICAL // SLEEP INTERCEPT";
+            document.getElementById('sysState').innerText = "CRITICAL // SLEEP DETECTED";
             document.getElementById('sysState').style.borderColor = "#ff003c";
             document.getElementById('sysState').style.color = "#ff003c";
-            document.getElementById('vigilanceScore').innerText = "ALERT!";
+            document.getElementById('vigilanceScore').innerText = "DANGER";
             document.getElementById('vigilanceScore').style.color = "#ff003c";
           }
         } else {
@@ -391,8 +423,8 @@
           document.getElementById('vigilanceScore').style.color = "#00ff66";
         }
 
-        // Yawn Logic
-        if (mar > 0.65 && (now - lastYawnTime) > 3500) {
+        // Yawn Logic (MAR > 0.68)
+        if (mar > 0.68 && (now - lastYawnTime) > 4000) {
           yawns++;
           lastYawnTime = now;
           document.getElementById('yawnCount').innerText = yawns;
